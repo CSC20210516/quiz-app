@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>題庫練習</title>
+<meta name="description" content="隨身題庫測驗系統">
+<meta name="theme-color" content="#0f0f13">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="題庫練習">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f0f13;
+    --surface: #1a1a22;
+    --surface2: #22222e;
+    --border: #2e2e3e;
+    --accent: #7c6af5;
+    --accent2: #f5a623;
+    --heart: #f04d6a;
+    --star: #ffd84d;
+    --green: #4dcc8f;
+    --red: #f04d6a;
+    --text: #e8e8f0;
+    --muted: #7878a0;
+    --radius: 14px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Noto Sans TC', sans-serif;
+    background: var(--bg); color: var(--text);
+    min-height: 100vh; overflow-x: hidden;
+  }
+  body::before {
+    content: ''; position: fixed; inset: 0;
+    background:
+      radial-gradient(ellipse 80% 50% at 20% 10%, rgba(124,106,245,0.08) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 40% at 80% 80%, rgba(245,166,35,0.05) 0%, transparent 60%);
+    pointer-events: none; z-index: 0;
+  }
+  #app { position: relative; z-index: 1; max-width: 700px; margin: 0 auto; padding: 16px; padding-top: calc(16px + env(safe-area-inset-top)); padding-bottom: calc(16px + env(safe-area-inset-bottom)); min-height: 100vh; }
+
+  .screen { display: none; animation: fadeUp 0.35s ease; }
+  .screen.active { display: block; }
+  @keyframes fadeUp { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
+
+  .app-header { display: flex; align-items: center; justify-content: space-between; padding: 20px 0 24px; }
+  .app-title {
+    font-size: 22px; font-weight: 900; letter-spacing: -0.5px;
+    background: linear-gradient(135deg, #a99bf7, #7c6af5);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .header-actions { display: flex; gap: 10px; }
+  .icon-btn {
+    width: 40px; height: 40px; border-radius: 10px;
+    border: 1px solid var(--border); background: var(--surface);
+    color: var(--muted); font-size: 18px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; transition: all 0.2s;
+  }
+  .icon-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  .stats-bar { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; }
+  .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 12px; text-align: center; }
+  .stat-val { font-size: 26px; font-weight: 900; font-family: 'Space Mono', monospace; }
+  .stat-val.accent { color: var(--accent); }
+  .stat-val.heart { color: var(--heart); }
+  .stat-val.star { color: var(--star); }
+  .stat-label { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+  .section-title { font-size: 12px; font-weight: 700; letter-spacing: 2px; color: var(--muted); text-transform: uppercase; margin-bottom: 12px; }
+  .mode-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+  .mode-btn { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 16px; cursor: pointer; transition: all 0.2s; text-align: left; color: var(--text); }
+  .mode-btn:hover { border-color: var(--accent); background: var(--surface2); transform: translateY(-1px); }
+  .mode-btn.heart-mode:hover { border-color: var(--heart); }
+  .mode-icon { font-size: 28px; margin-bottom: 8px; }
+  .mode-name { font-size: 15px; font-weight: 700; }
+  .mode-desc { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+  .chapter-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
+  .chapter-item { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 18px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; transition: all 0.2s; color: var(--text); }
+  .chapter-item:hover { border-color: var(--accent); }
+  .chapter-name { font-weight: 600; }
+  .chapter-count { font-size: 12px; color: var(--muted); }
+
+  .quiz-header { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+  .back-btn { width: 36px; height: 36px; border-radius: 9px; border: 1px solid var(--border); background: var(--surface); color: var(--muted); font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; flex-shrink: 0; }
+  .back-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .quiz-progress-wrap { flex: 1; }
+  .quiz-meta { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+  .progress-bar { height: 4px; background: var(--border); border-radius: 99px; overflow: hidden; }
+  .progress-fill { height: 100%; background: linear-gradient(90deg, var(--accent), #b8adff); border-radius: 99px; transition: width 0.4s ease; }
+
+  .question-card { background: var(--surface); border: 1px solid var(--border); border-radius: 18px; padding: 24px; margin-bottom: 16px; }
+  .q-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+  .q-tags { display: flex; gap: 6px; flex-wrap: wrap; flex: 1; }
+  .q-chapter-tag { font-size: 11px; background: rgba(124,106,245,0.15); color: var(--accent); padding: 3px 10px; border-radius: 99px; white-space: nowrap; }
+  .q-type-tag { font-size: 11px; padding: 3px 10px; border-radius: 99px; white-space: nowrap; }
+  .q-type-tag.mc { background: rgba(77,204,143,0.12); color: var(--green); }
+  .q-type-tag.multi { background: rgba(245,166,35,0.12); color: var(--accent2); }
+  .q-type-tag.tf { background: rgba(240,77,106,0.1); color: var(--red); }
+  .heart-toggle { font-size: 22px; cursor: pointer; transition: transform 0.2s; flex-shrink: 0; }
+  .heart-toggle:hover { transform: scale(1.2); }
+  .q-stars { font-size: 13px; margin-bottom: 12px; min-height: 18px; }
+  .q-text { font-size: 17px; font-weight: 500; line-height: 1.65; }
+  .q-hint { font-size: 12px; color: var(--muted); margin-top: 10px; font-style: italic; }
+
+  .options-list { display: flex; flex-direction: column; gap: 10px; }
+  .option-btn { background: var(--surface2); border: 1.5px solid var(--border); border-radius: 12px; padding: 14px 18px; cursor: pointer; text-align: left; color: var(--text); font-size: 15px; display: flex; align-items: center; gap: 12px; transition: all 0.18s; font-family: 'Noto Sans TC', sans-serif; }
+  .option-btn:not(.revealed):not(.disabled):hover { border-color: var(--accent); background: rgba(124,106,245,0.1); }
+  .option-key { width: 28px; height: 28px; border-radius: 8px; flex-shrink: 0; background: rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; font-family: 'Space Mono', monospace; transition: background 0.15s; }
+  .option-btn.correct { border-color: var(--green) !important; background: rgba(77,204,143,0.12) !important; }
+  .option-btn.correct .option-key { background: var(--green); color: #0f0f13; }
+  .option-btn.wrong { border-color: var(--red) !important; background: rgba(240,77,106,0.1) !important; }
+  .option-btn.wrong .option-key { background: var(--red); color: #fff; }
+  .option-btn.selected:not(.revealed) { border-color: var(--accent2) !important; background: rgba(245,166,35,0.1) !important; }
+  .option-btn.selected:not(.revealed) .option-key { background: var(--accent2); color: #0f0f13; }
+  .option-btn.dimmed { opacity: 0.4; }
+  .option-btn.disabled { cursor: default; pointer-events: none; }
+
+  .tf-options { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .tf-btn { background: var(--surface2); border: 1.5px solid var(--border); border-radius: 12px; padding: 20px; cursor: pointer; text-align: center; color: var(--text); font-size: 26px; transition: all 0.18s; }
+  .tf-btn:not(.revealed):hover { border-color: var(--accent); background: rgba(124,106,245,0.1); }
+  .tf-btn.correct { border-color: var(--green); background: rgba(77,204,143,0.12); }
+  .tf-btn.wrong { border-color: var(--red); background: rgba(240,77,106,0.1); }
+  .tf-label { font-size: 14px; margin-top: 6px; color: var(--muted); }
+
+  .multi-confirm-btn { width: 100%; padding: 14px; border-radius: 12px; margin-top: 12px; background: rgba(245,166,35,0.15); border: 1.5px solid var(--accent2); color: var(--accent2); font-size: 15px; font-weight: 700; cursor: pointer; font-family: 'Noto Sans TC', sans-serif; transition: all 0.2s; display: none; }
+  .multi-confirm-btn.show { display: block; }
+  .multi-confirm-btn:hover { background: rgba(245,166,35,0.28); }
+
+  .result-feedback { border-radius: 12px; padding: 14px 18px; margin-top: 14px; font-size: 14px; display: none; animation: fadeUp 0.25s ease; }
+  .result-feedback.show { display: block; }
+  .result-feedback.correct-fb { background: rgba(77,204,143,0.12); border: 1px solid rgba(77,204,143,0.3); color: #4dcc8f; }
+  .result-feedback.wrong-fb { background: rgba(240,77,106,0.1); border: 1px solid rgba(240,77,106,0.3); color: #f06b7a; }
+  .fb-title { font-weight: 700; font-size: 16px; margin-bottom: 4px; }
+  .fb-answer { font-size: 13px; opacity: 0.85; margin-top: 4px; }
+
+  .next-btn { width: 100%; padding: 16px; border-radius: 12px; background: linear-gradient(135deg, var(--accent), #9b8ef7); border: none; color: #fff; font-size: 16px; font-weight: 700; cursor: pointer; margin-top: 12px; display: none; font-family: 'Noto Sans TC', sans-serif; transition: transform 0.15s, box-shadow 0.15s; box-shadow: 0 4px 20px rgba(124,106,245,0.3); }
+  .next-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 28px rgba(124,106,245,0.4); }
+  .next-btn.show { display: block; animation: fadeUp 0.25s ease; }
+
+  .result-screen { text-align: center; padding: 40px 20px; }
+  .result-emoji { font-size: 72px; margin-bottom: 16px; }
+  .result-title { font-size: 28px; font-weight: 900; margin-bottom: 8px; }
+  .result-score { font-size: 52px; font-weight: 900; font-family: 'Space Mono', monospace; color: var(--accent); margin: 20px 0; }
+  .result-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 24px 0; }
+  .result-stat { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; }
+  .result-stat-val { font-size: 22px; font-weight: 700; }
+  .result-stat-label { font-size: 12px; color: var(--muted); margin-top: 4px; }
+  .result-actions { display: flex; flex-direction: column; gap: 10px; margin-top: 24px; }
+  .btn-primary { padding: 16px; border-radius: 12px; background: linear-gradient(135deg, var(--accent), #9b8ef7); border: none; color: #fff; font-size: 16px; font-weight: 700; cursor: pointer; font-family: 'Noto Sans TC', sans-serif; transition: all 0.2s; }
+  .btn-secondary { padding: 14px; border-radius: 12px; background: var(--surface); border: 1px solid var(--border); color: var(--text); font-size: 15px; font-weight: 600; cursor: pointer; font-family: 'Noto Sans TC', sans-serif; transition: all 0.2s; }
+  .btn-secondary:hover { border-color: var(--accent); }
+
+  .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 100; display: none; align-items: flex-start; justify-content: center; padding: 16px; overflow-y: auto; }
+  .modal-backdrop.open { display: flex; }
+  .modal { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 24px; width: 100%; max-width: 600px; animation: fadeUp 0.3s ease; margin: auto; }
+  .modal-title { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+  .modal-sub { font-size: 13px; color: var(--muted); margin-bottom: 20px; }
+  .modal-tabs { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+  .modal-tab { padding: 8px 14px; border-radius: 8px; cursor: pointer; background: var(--bg); border: 1px solid var(--border); font-size: 13px; color: var(--muted); transition: all 0.2s; font-family: 'Noto Sans TC', sans-serif; }
+  .modal-tab.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+  .file-drop { border: 2px dashed var(--border); border-radius: 12px; padding: 32px; text-align: center; cursor: pointer; transition: all 0.2s; margin-bottom: 12px; }
+  .file-drop:hover, .file-drop.drag { border-color: var(--accent); background: rgba(124,106,245,0.05); }
+  .file-drop-icon { font-size: 36px; margin-bottom: 8px; }
+  .file-drop-text { font-size: 14px; color: var(--muted); }
+  textarea.json-input { width: 100%; min-height: 200px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px; color: var(--text); font-size: 12px; font-family: 'Space Mono', monospace; resize: vertical; outline: none; transition: border-color 0.2s; }
+  textarea.json-input:focus { border-color: var(--accent); }
+  .schema-hint { background: rgba(124,106,245,0.08); border: 1px solid rgba(124,106,245,0.2); border-radius: 10px; padding: 16px; margin-bottom: 12px; font-size: 12px; color: var(--muted); font-family: 'Space Mono', monospace; line-height: 1.8; white-space: pre-wrap; }
+  .schema-hint b { color: var(--accent); }
+  .schema-hint .o { color: var(--accent2); }
+  .schema-hint .g { color: var(--green); }
+  .modal-actions { display: flex; gap: 10px; margin-top: 16px; }
+  .btn-import { flex: 1; padding: 14px; border-radius: 10px; background: linear-gradient(135deg, var(--accent), #9b8ef7); border: none; color: #fff; font-size: 15px; font-weight: 700; cursor: pointer; font-family: 'Noto Sans TC', sans-serif; }
+  .btn-close { padding: 14px 20px; border-radius: 10px; background: var(--surface2); border: 1px solid var(--border); color: var(--muted); font-size: 15px; cursor: pointer; font-family: 'Noto Sans TC', sans-serif; }
+  .import-msg { font-size: 13px; margin-top: 10px; padding: 10px 14px; border-radius: 8px; display: none; }
+  .import-msg.ok { background: rgba(77,204,143,0.12); color: var(--green); display: block; }
+  .import-msg.err { background: rgba(240,77,106,0.1); color: var(--red); display: block; }
+
+  .empty-state { text-align: center; padding: 60px 20px; color: var(--muted); }
+  .empty-icon { font-size: 56px; margin-bottom: 16px; }
+  .empty-title { font-size: 18px; font-weight: 700; color: var(--text); margin-bottom: 8px; }
+  .empty-desc { font-size: 14px; line-height: 1.6; }
+
+  .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(60px); background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 12px 20px; font-size: 14px; transition: transform 0.3s ease; z-index: 200; white-space: nowrap; }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+  input[type=file] { display: none; }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- HOME -->
+  <div id="screen-home" class="screen active">
+    <div class="app-header">
+      <div class="app-title">📚 題庫練習</div>
+      <div class="header-actions">
+        <button class="icon-btn" onclick="openBackup()" title="備份／還原">💾</button>
+        <button class="icon-btn" onclick="openImport()" title="匯入題庫">＋</button>
+      </div>
+    </div>
+    <div class="stats-bar">
+      <div class="stat-card"><div class="stat-val accent" id="total-count">0</div><div class="stat-label">題目總數</div></div>
+      <div class="stat-card"><div class="stat-val heart" id="heart-count">0</div><div class="stat-label">❤️ 重要題</div></div>
+      <div class="stat-card"><div class="stat-val star" id="mastered-count">0</div><div class="stat-label">⭐ 已熟練</div></div>
+    </div>
+    <div id="home-content"></div>
+  </div>
+
+  <!-- CHAPTERS -->
+  <div id="screen-chapters" class="screen">
+    <div class="app-header">
+      <button class="icon-btn" onclick="goHome()">←</button>
+      <div class="app-title" style="font-size:18px;">選擇章節</div>
+      <div style="width:40px"></div>
+    </div>
+    <div id="chapter-list" class="chapter-list"></div>
+  </div>
+
+  <!-- QUIZ -->
+  <div id="screen-quiz" class="screen">
+    <div class="quiz-header">
+      <button class="back-btn" onclick="confirmQuit()">←</button>
+      <div class="quiz-progress-wrap">
+        <div class="quiz-meta">
+          <span id="q-mode-label">隨機練習</span>
+          <span id="q-counter">1 / 10</span>
+        </div>
+        <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+      </div>
+    </div>
+    <div id="quiz-area"></div>
+  </div>
+
+  <!-- RESULT -->
+  <div id="screen-result" class="screen">
+    <div class="result-screen">
+      <div class="result-emoji" id="result-emoji">🎉</div>
+      <div class="result-title" id="result-title">本次結果</div>
+      <div class="result-score" id="result-score">0/0</div>
+      <div class="result-stats">
+        <div class="result-stat"><div class="result-stat-val" id="res-correct" style="color:var(--green)">0</div><div class="result-stat-label">✅ 答對</div></div>
+        <div class="result-stat"><div class="result-stat-val" id="res-wrong" style="color:var(--red)">0</div><div class="result-stat-label">❌ 答錯</div></div>
+        <div class="result-stat"><div class="result-stat-val" id="res-mastered" style="color:var(--star)">0</div><div class="result-stat-label">⭐ 本次熟練</div></div>
+        <div class="result-stat"><div class="result-stat-val" id="res-total-mastered" style="color:var(--accent)">0</div><div class="result-stat-label">🏆 總熟練數</div></div>
+      </div>
+      <div class="result-actions">
+        <button class="btn-primary" onclick="retryQuiz()">🔄 再來一次</button>
+        <button class="btn-secondary" onclick="goHome()">🏠 回首頁</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- BACKUP MODAL -->
+<div class="modal-backdrop" id="backup-modal">
+  <div class="modal">
+    <div class="modal-title">💾 備份與還原</div>
+    <div class="modal-sub">將題庫和進度帶到任何電腦</div>
+
+    <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:16px">
+
+      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:18px">
+        <div style="font-weight:700;margin-bottom:6px">📤 匯出備份檔案</div>
+        <div style="font-size:13px;color:var(--muted);margin-bottom:14px;line-height:1.6">
+          將目前所有題目、星星數、❤️ 標記全部打包成一個 <b style="color:var(--text)">.json</b> 備份檔案，帶到新電腦後再匯入即可還原。
+        </div>
+        <button class="btn-primary" style="width:100%;padding:13px" onclick="exportBackup()">📤 匯出備份檔案</button>
+      </div>
+
+      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:18px">
+        <div style="font-weight:700;margin-bottom:6px">📥 匯入備份檔案</div>
+        <div style="font-size:13px;color:var(--muted);margin-bottom:14px;line-height:1.6">
+          選擇之前匯出的備份 <b style="color:var(--text)">.json</b> 檔案，會還原所有題目和進度（⚠️ 會覆蓋目前資料）。
+        </div>
+        <div class="file-drop" id="backup-drop" onclick="document.getElementById('backup-file-input').click()" style="padding:20px;margin-bottom:0">
+          <div class="file-drop-icon" style="font-size:28px">📂</div>
+          <div class="file-drop-text">點擊選擇或拖曳備份 .json 檔案</div>
+        </div>
+        <input type="file" id="backup-file-input" accept=".json" onchange="importBackup(event)">
+      </div>
+
+    </div>
+
+    <div class="import-msg" id="backup-msg"></div>
+    <div class="modal-actions">
+      <button class="btn-close" style="width:100%" onclick="closeBackup()">關閉</button>
+    </div>
+  </div>
+</div>
+
+<!-- IMPORT MODAL -->
+<div class="modal-backdrop" id="import-modal">
+  <div class="modal">
+    <div class="modal-title">📥 匯入題庫</div>
+    <div class="modal-sub">支援單選、多選、是非三種題型</div>
+    <div class="modal-tabs">
+      <button class="modal-tab active" onclick="switchTab('file')">📁 上傳檔案</button>
+      <button class="modal-tab" onclick="switchTab('paste')">📋 貼上 JSON</button>
+      <button class="modal-tab" onclick="switchTab('format')">📖 格式說明</button>
+    </div>
+    <div id="tab-file" class="tab-content active">
+      <div class="file-drop" id="file-drop" onclick="document.getElementById('file-input').click()">
+        <div class="file-drop-icon">📂</div>
+        <div class="file-drop-text">點擊選擇或拖曳 .json 檔案至此</div>
+      </div>
+      <input type="file" id="file-input" accept=".json" onchange="handleFile(event)">
+    </div>
+    <div id="tab-paste" class="tab-content">
+      <textarea class="json-input" id="json-paste" placeholder='貼上 JSON 題庫內容...'></textarea>
+    </div>
+    <div id="tab-format" class="tab-content">
+      <div class="schema-hint"><b>// ① 單選題</b>
+{ <b>"type"</b>: <span class="o">"mc"</span>, <b>"chapter"</b>: "第一章",
+  <b>"question"</b>: "題目文字",
+  <b>"options"</b>: ["A選項","B選項","C選項","D選項"],
+  <b>"answer"</b>: <span class="o">"A"</span>,
+  <b>"explanation"</b>: "解析（可省略）" }
+
+<b>// ② 多選題</b>
+{ <b>"type"</b>: <span class="o">"multi"</span>, <b>"chapter"</b>: "第二章",
+  <b>"question"</b>: "以下哪些是正確的？",
+  <b>"options"</b>: ["A選項","B選項","C選項","D選項"],
+  <b>"answer"</b>: <span class="o">["A","C"]</span>,  <span class="g">// 字母陣列</span>
+  <b>"explanation"</b>: "解析（可省略）" }
+
+<b>// ③ 是非題</b>
+{ <b>"type"</b>: <span class="o">"tf"</span>, <b>"chapter"</b>: "第三章",
+  <b>"question"</b>: "這個敘述是正確的。",
+  <b>"answer"</b>: <span class="o">"T"</span>,  <span class="g">// "T" 或 "F"</span>
+  <b>"explanation"</b>: "解析（可省略）" }
+
+<span class="g">// 將題目放入陣列 [ ] 即可匯入
+// id 可省略（自動產生）
+// 重複匯入同 id 題目會自動更新</span></div>
+    </div>
+    <div class="import-msg" id="import-msg"></div>
+    <div class="modal-actions">
+      <button class="btn-close" onclick="closeImport()">取消</button>
+      <button class="btn-import" onclick="doImport()">匯入題庫</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const STARS_TO_MASTER = 5;
+let questions = [];
+let progress = {};
+let currentSession = { questions:[], idx:0, correct:0, wrong:0, mode:'', masteredThisSession:0 };
+let lastMode = '', lastChapter = '';
+let multiSelected = new Set();
+let multiAnswered = false;
+
+function save() {
+  try { localStorage.setItem('quiz_q', JSON.stringify(questions)); localStorage.setItem('quiz_p', JSON.stringify(progress)); } catch(e){}
+}
+function load() {
+  try {
+    const q = localStorage.getItem('quiz_q'); const p = localStorage.getItem('quiz_p');
+    if (q) questions = JSON.parse(q); if (p) progress = JSON.parse(p);
+    questions.forEach(q => { if (!progress[q.id]) progress[q.id] = { stars:0, heart:false }; });
+  } catch(e){}
+}
+
+function goHome() { showScreen('home'); renderHome(); }
+function showScreen(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + name).classList.add('active');
+  window.scrollTo(0,0);
+}
+
+// HOME
+function renderHome() {
+  updateStatsBar();
+  const el = document.getElementById('home-content');
+  if (!questions.length) {
+    el.innerHTML = `<div class="empty-state"><div class="empty-icon">📭</div><div class="empty-title">尚未匯入題庫</div><div class="empty-desc">點擊右上角「＋」匯入 JSON 題庫</div></div><button class="btn-primary" style="margin-top:16px" onclick="openImport()">＋ 匯入題庫</button>`;
+    return;
+  }
+  const hc = questions.filter(q => progress[q.id]?.heart).length;
+  el.innerHTML = `
+    <div class="section-title">練習模式</div>
+    <div class="mode-grid">
+      <button class="mode-btn" onclick="startRandom()"><div class="mode-icon">🎲</div><div class="mode-name">隨機出題</div><div class="mode-desc">全部題目隨機</div></button>
+      <button class="mode-btn heart-mode" onclick="startHeart()"><div class="mode-icon">❤️</div><div class="mode-name">重要題目</div><div class="mode-desc">${hc} 題已標記</div></button>
+    </div>
+    <div class="section-title">按章節出題</div>
+    ${renderChapterPreview()}`;
+}
+
+function updateStatsBar() {
+  document.getElementById('total-count').textContent = questions.length;
+  document.getElementById('heart-count').textContent = questions.filter(q => progress[q.id]?.heart).length;
+  document.getElementById('mastered-count').textContent = questions.filter(q => (progress[q.id]?.stars||0) >= STARS_TO_MASTER).length;
+}
+
+function getChapters() { return [...new Set(questions.map(q => q.chapter || '未分類'))]; }
+
+function chapterItemHTML(ch) {
+  const qs = questions.filter(q => (q.chapter||'未分類') === ch);
+  const mastered = qs.filter(q => (progress[q.id]?.stars||0) >= STARS_TO_MASTER).length;
+  const esc = ch.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+  return `<button class="chapter-item" onclick="startChapter('${esc}')">
+    <div><div class="chapter-name">${ch}</div><div class="chapter-count">${qs.length} 題</div></div>
+    <div style="font-size:13px">${mastered>0?'⭐ '+mastered+'/'+qs.length:''}</div>
+  </button>`;
+}
+
+function renderChapterPreview() {
+  const chs = getChapters();
+  if (!chs.length) return '<div style="color:var(--muted);font-size:13px;margin-bottom:16px">（題目未設定章節）</div>';
+  const items = chs.slice(0,4).map(chapterItemHTML).join('');
+  const more = chs.length > 4 ? `<button class="chapter-item" onclick="showScreen('chapters');renderChapters()"><div><div class="chapter-name">查看全部 ${chs.length} 個章節 →</div></div><div></div></button>` : '';
+  return `<div class="chapter-list">${items}${more}</div>`;
+}
+
+function renderChapters() {
+  document.getElementById('chapter-list').innerHTML = getChapters().map(chapterItemHTML).join('');
+}
+
+// START
+function startRandom() { lastMode='random'; lastChapter=''; beginQuiz(shuffle([...questions]),'🎲 隨機出題'); }
+function startHeart() {
+  const qs = shuffle(questions.filter(q => progress[q.id]?.heart));
+  if (!qs.length) { showToast('尚無標記重要題目！先用 ❤️ 標記'); return; }
+  lastMode='heart'; lastChapter=''; beginQuiz(qs,'❤️ 重要題');
+}
+function startChapter(ch) { lastMode='chapter'; lastChapter=ch; beginQuiz(shuffle(questions.filter(q=>(q.chapter||'未分類')===ch)), ch); }
+function retryQuiz() {
+  if (lastMode==='chapter') startChapter(lastChapter);
+  else if (lastMode==='heart') startHeart();
+  else startRandom();
+}
+function beginQuiz(qs, label) {
+  currentSession = { questions:qs, idx:0, correct:0, wrong:0, mode:label, masteredThisSession:0 };
+  document.getElementById('q-mode-label').textContent = label;
+  showScreen('quiz'); renderQuestion();
+}
+
+// RENDER QUESTION
+function renderQuestion() {
+  multiSelected = new Set(); multiAnswered = false;
+  const {questions:qs, idx} = currentSession;
+  if (idx >= qs.length) { showResult(); return; }
+  const q = qs[idx];
+  const prog = progress[q.id] || {stars:0, heart:false};
+  const total = qs.length;
+  document.getElementById('q-counter').textContent = (idx+1) + ' / ' + total;
+  document.getElementById('progress-fill').style.width = (idx/total*100) + '%';
+
+  const typeLabel = q.type==='multi' ? '多選題' : q.type==='tf' ? '是非題' : '單選題';
+  const typeCls = q.type==='multi' ? 'multi' : q.type==='tf' ? 'tf' : 'mc';
+  const heartIcon = prog.heart ? '❤️' : '🤍';
+  const letters = ['A','B','C','D','E','F'];
+
+  let body = '';
+  if (q.type === 'tf') {
+    body = `<div class="tf-options">
+      <button class="tf-btn" onclick="answerTF(true)"><div>⭕</div><div class="tf-label">正確</div></button>
+      <button class="tf-btn" onclick="answerTF(false)"><div>✖️</div><div class="tf-label">錯誤</div></button>
+    </div>`;
+  } else if (q.type === 'multi') {
+    body = `<div class="options-list" id="opts">
+      ${(q.options||[]).map((opt,i) => `<button class="option-btn" id="opt-${letters[i]}" onclick="toggleMulti('${letters[i]}')"><div class="option-key" id="key-${letters[i]}">${letters[i]}</div><div>${opt}</div></button>`).join('')}
+    </div>
+    <button class="multi-confirm-btn" id="multi-confirm" onclick="confirmMulti()">✔ 確認作答</button>`;
+  } else {
+    body = `<div class="options-list">
+      ${(q.options||[]).map((opt,i) => `<button class="option-btn" onclick="answerMC('${letters[i]}')"><div class="option-key">${letters[i]}</div><div>${opt}</div></button>`).join('')}
+    </div>`;
+  }
+
+  document.getElementById('quiz-area').innerHTML = `
+    <div class="question-card">
+      <div class="q-top">
+        <div class="q-tags"><div class="q-chapter-tag">${q.chapter||'未分類'}</div><div class="q-type-tag ${typeCls}">${typeLabel}</div></div>
+        <div class="heart-toggle" onclick="toggleHeart('${q.id}')" id="heart-${q.id}">${heartIcon}</div>
+      </div>
+      <div class="q-stars" id="stars-${q.id}">${starsHTML(prog.stars)}</div>
+      <div class="q-text">${q.question}</div>
+      ${q.type==='multi' ? '<div class="q-hint">※ 可複選，選完後按「確認作答」</div>' : ''}
+    </div>
+    ${body}
+    <div class="result-feedback" id="feedback"></div>
+    <button class="next-btn" id="next-btn" onclick="nextQuestion()">${idx+1>=total ? '查看結果 →' : '下一題 →'}</button>`;
+}
+
+function starsHTML(count) {
+  if (count === 0) return '';
+  let s = '';
+  for (let i = 0; i < STARS_TO_MASTER; i++) s += i < count ? '⭐' : '☆';
+  if (count >= STARS_TO_MASTER) s += ' <span style="font-size:11px;color:var(--star);margin-left:4px">熟練！</span>';
+  return s;
+}
+
+// ANSWERS
+function answerMC(chosen) {
+  const q = currentSession.questions[currentSession.idx];
+  const correct = chosen === q.answer;
+  const letters = ['A','B','C','D','E','F'];
+  document.querySelectorAll('.option-btn').forEach((btn,i) => {
+    btn.classList.add('disabled','revealed');
+    if (letters[i] === q.answer) btn.classList.add('correct');
+    else if (letters[i] === chosen && !correct) btn.classList.add('wrong');
+    else btn.classList.add('dimmed');
+  });
+  showFeedback(correct, q.answer, q); recordAnswer(q.id, correct);
+}
+
+function answerTF(chosen) {
+  const q = currentSession.questions[currentSession.idx];
+  const cv = (q.answer==='T'||q.answer===true||q.answer==='正確'||q.answer==='對');
+  const correct = chosen === cv;
+  document.querySelectorAll('.tf-btn').forEach((btn,i) => {
+    btn.classList.add('revealed');
+    const isTrue = i===0;
+    if (isTrue===cv) btn.classList.add('correct');
+    else if (isTrue===chosen && !correct) btn.classList.add('wrong');
+  });
+  showFeedback(correct, cv?'正確 ⭕':'錯誤 ✖️', q); recordAnswer(q.id, correct);
+}
+
+function toggleMulti(letter) {
+  if (multiAnswered) return;
+  const btn = document.getElementById('opt-'+letter);
+  if (multiSelected.has(letter)) { multiSelected.delete(letter); btn.classList.remove('selected'); }
+  else { multiSelected.add(letter); btn.classList.add('selected'); }
+  const cb = document.getElementById('multi-confirm');
+  if (cb) cb.classList.toggle('show', multiSelected.size > 0);
+}
+
+function confirmMulti() {
+  if (multiAnswered || multiSelected.size === 0) return;
+  multiAnswered = true;
+  const q = currentSession.questions[currentSession.idx];
+  const letters = ['A','B','C','D','E','F'];
+  const correctArr = (Array.isArray(q.answer) ? q.answer : [q.answer]).map(a => a.toUpperCase());
+  const chosenArr = [...multiSelected].map(l => l.toUpperCase()).sort();
+  const correct = JSON.stringify(chosenArr) === JSON.stringify([...correctArr].sort());
+
+  document.querySelectorAll('.option-btn').forEach((btn,i) => {
+    btn.classList.add('disabled','revealed'); btn.classList.remove('selected');
+    if (correctArr.includes(letters[i])) btn.classList.add('correct');
+    else if (multiSelected.has(letters[i])) btn.classList.add('wrong');
+    else btn.classList.add('dimmed');
+  });
+  const cb = document.getElementById('multi-confirm');
+  if (cb) cb.style.display = 'none';
+  showFeedback(correct, correctArr.join('、'), q); recordAnswer(q.id, correct);
+}
+
+function showFeedback(correct, ansLabel, q) {
+  const fb = document.getElementById('feedback');
+  if (correct) {
+    fb.className = 'result-feedback correct-fb show';
+    fb.innerHTML = `<div class="fb-title">✅ 答對了！</div>${q.explanation?'<div class="fb-answer">'+q.explanation+'</div>':''}`;
+  } else {
+    fb.className = 'result-feedback wrong-fb show';
+    fb.innerHTML = `<div class="fb-title">❌ 答錯了</div><div class="fb-answer">正確答案：${ansLabel}</div>${q.explanation?'<div class="fb-answer">'+q.explanation+'</div>':''}`;
+  }
+  document.getElementById('next-btn').classList.add('show');
+}
+
+function recordAnswer(qId, correct) {
+  if (!progress[qId]) progress[qId] = {stars:0, heart:false};
+  const prev = progress[qId].stars;
+  if (correct) {
+    currentSession.correct++;
+    progress[qId].stars = Math.min((progress[qId].stars||0)+1, STARS_TO_MASTER);
+    if (prev < STARS_TO_MASTER && progress[qId].stars >= STARS_TO_MASTER) currentSession.masteredThisSession++;
+  } else {
+    currentSession.wrong++;
+    progress[qId].stars = 0;
+  }
+  const se = document.getElementById('stars-'+qId); if (se) se.innerHTML = starsHTML(progress[qId].stars);
+  save();
+}
+
+function nextQuestion() { currentSession.idx++; renderQuestion(); }
+function confirmQuit() { if (confirm('確定要離開這次練習嗎？')) goHome(); }
+
+function toggleHeart(qId) {
+  if (!progress[qId]) progress[qId] = {stars:0, heart:false};
+  progress[qId].heart = !progress[qId].heart;
+  const el = document.getElementById('heart-'+qId); if (el) el.textContent = progress[qId].heart?'❤️':'🤍';
+  save(); showToast(progress[qId].heart?'❤️ 已加入重要標記':'已移除重要標記');
+}
+
+// RESULT
+function showResult() {
+  const {correct, wrong, questions:qs, masteredThisSession} = currentSession;
+  const total = qs.length, pct = total>0?Math.round(correct/total*100):0;
+  const mt = questions.filter(q=>(progress[q.id]?.stars||0)>=STARS_TO_MASTER).length;
+  document.getElementById('result-emoji').textContent = pct>=80?'🎉':pct>=60?'😊':'💪';
+  document.getElementById('result-title').textContent = pct>=80?'太棒了！':pct>=60?'繼續加油！':'再接再厲！';
+  document.getElementById('result-score').textContent = correct+'/'+total;
+  document.getElementById('res-correct').textContent = correct;
+  document.getElementById('res-wrong').textContent = wrong;
+  document.getElementById('res-mastered').textContent = masteredThisSession;
+  document.getElementById('res-total-mastered').textContent = mt;
+  showScreen('result');
+}
+
+// IMPORT
+function openImport() { document.getElementById('import-modal').classList.add('open'); }
+function closeImport() { document.getElementById('import-modal').classList.remove('open'); document.getElementById('import-msg').className='import-msg'; }
+function switchTab(tab) {
+  const tabs=['file','paste','format'];
+  document.querySelectorAll('.modal-tab').forEach((t,i) => t.classList.toggle('active', tabs[i]===tab));
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-'+tab).classList.add('active');
+}
+function handleFile(e) {
+  const file = e.target.files[0]; if (!file) return;
+  const r = new FileReader();
+  r.onload = ev => { document.getElementById('json-paste').value = ev.target.result; switchTab('paste'); };
+  r.readAsText(file);
+}
+const dz = document.getElementById('file-drop');
+dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag'); });
+dz.addEventListener('dragleave', () => dz.classList.remove('drag'));
+dz.addEventListener('drop', e => {
+  e.preventDefault(); dz.classList.remove('drag');
+  const file = e.dataTransfer.files[0]; if (!file) return;
+  const r = new FileReader();
+  r.onload = ev => { document.getElementById('json-paste').value = ev.target.result; switchTab('paste'); };
+  r.readAsText(file);
+});
+
+function doImport() {
+  const raw = document.getElementById('json-paste').value.trim();
+  if (!raw) { showImportMsg('請先選擇或貼上 JSON 內容','err'); return; }
+  let parsed;
+  try { parsed = JSON.parse(raw); } catch(e) { showImportMsg('JSON 格式錯誤：'+e.message,'err'); return; }
+  if (!Array.isArray(parsed)||!parsed.length) { showImportMsg('格式錯誤：需要題目陣列 [ ]','err'); return; }
+  const norm = parsed.map((q,i) => ({
+    id: q.id||('q_'+Date.now()+'_'+i),
+    chapter: q.chapter||'',
+    type: q.type||'mc',
+    question: q.question||'',
+    options: q.options||[],
+    answer: q.answer,
+    explanation: q.explanation||''
+  }));
+  const exIds = new Set(questions.map(q=>q.id));
+  let added=0, updated=0;
+  norm.forEach(nq => {
+    if (!progress[nq.id]) progress[nq.id]={stars:0,heart:false};
+    if (exIds.has(nq.id)) { questions[questions.findIndex(q=>q.id===nq.id)]=nq; updated++; }
+    else { questions.push(nq); added++; }
+  });
+  save();
+  showImportMsg('✅ 匯入成功！新增 '+added+' 題，更新 '+updated+' 題','ok');
+  setTimeout(() => { closeImport(); document.getElementById('json-paste').value=''; renderHome(); }, 1200);
+}
+function showImportMsg(msg, type) { const el=document.getElementById('import-msg'); el.textContent=msg; el.className='import-msg '+type; }
+
+// BACKUP & RESTORE
+function openBackup() { document.getElementById('backup-modal').classList.add('open'); }
+function closeBackup() { document.getElementById('backup-modal').classList.remove('open'); document.getElementById('backup-msg').className='import-msg'; }
+
+function exportBackup() {
+  if (!questions.length) { showBackupMsg('尚無題庫可匯出','err'); return; }
+  const data = { version: 1, exportedAt: new Date().toISOString(), questions, progress };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const date = new Date().toISOString().slice(0,10);
+  a.href = url; a.download = 'quiz-backup-' + date + '.json';
+  a.click(); URL.revokeObjectURL(url);
+  showBackupMsg('✅ 備份匯出成功！檔案已下載', 'ok');
+}
+
+function importBackup(e) {
+  const file = e.target.files[0]; if (!file) return;
+  const r = new FileReader();
+  r.onload = ev => {
+    try {
+      const data = JSON.parse(ev.target.result);
+      if (!data.questions || !Array.isArray(data.questions)) { showBackupMsg('❌ 不是有效的備份檔案', 'err'); return; }
+      questions = data.questions;
+      progress = data.progress || {};
+      questions.forEach(q => { if (!progress[q.id]) progress[q.id] = {stars:0, heart:false}; });
+      save();
+      showBackupMsg('✅ 還原成功！共 ' + questions.length + ' 題', 'ok');
+      setTimeout(() => { closeBackup(); renderHome(); }, 1200);
+    } catch(err) { showBackupMsg('❌ 檔案格式錯誤：' + err.message, 'err'); }
+  };
+  r.readAsText(file);
+}
+
+function showBackupMsg(msg, type) { const el=document.getElementById('backup-msg'); el.textContent=msg; el.className='import-msg '+type; }
+
+// drag drop for backup
+const bdz = document.getElementById('backup-drop');
+bdz.addEventListener('dragover', e => { e.preventDefault(); bdz.classList.add('drag'); });
+bdz.addEventListener('dragleave', () => bdz.classList.remove('drag'));
+bdz.addEventListener('drop', e => {
+  e.preventDefault(); bdz.classList.remove('drag');
+  const file = e.dataTransfer.files[0]; if (!file) return;
+  const r = new FileReader();
+  r.onload = ev => {
+    try {
+      const data = JSON.parse(ev.target.result);
+      if (!data.questions || !Array.isArray(data.questions)) { showBackupMsg('❌ 不是有效的備份檔案', 'err'); return; }
+      questions = data.questions; progress = data.progress || {};
+      questions.forEach(q => { if (!progress[q.id]) progress[q.id] = {stars:0, heart:false}; });
+      save(); showBackupMsg('✅ 還原成功！共 ' + questions.length + ' 題', 'ok');
+      setTimeout(() => { closeBackup(); renderHome(); }, 1200);
+    } catch(err) { showBackupMsg('❌ 檔案格式錯誤：' + err.message, 'err'); }
+  };
+  r.readAsText(file);
+});
+
+// UTILS
+function shuffle(arr) {
+  const a=[...arr];
+  for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}
+  return a;
+}
+let toastTimer;
+function showToast(msg) {
+  const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show');
+  clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove('show'),2000);
+}
+
+// ===== 內建題庫 =====
+const BUILTIN_QUESTIONS = [
+  {
+    "id": "builtin_1",
+    "chapter": "Assessment Test",
+    "type": "mc",
+    "question": "What type of solutions enable enterprises or individuals to store data and computer files on the internet using a storage service provider rather than keeping the data locally on a physical disk such as a hard drive or tape backup?",
+    "options": ["Online backups", "Cloud backup solutions", "Removable hard drives", "Masking"],
+    "answer": "B",
+    "explanation": "Cloud backup solutions enable enterprises to store their data and computer files on the internet using a storage service rather than storing data locally on a hard disk or tape backup. This has the added benefit of providing access to data should infrastructure or equipment at the primary business location be damaged in some way that prevents accessing or restoring data locally. Online backups and removable hard drives are other options but do not by default supply the customer with ubiquitous access. Masking is a technology used to partially conceal sensitive data."
+  },
+  {
+    "id": "builtin_2",
+    "chapter": "Assessment Test",
+    "type": "mc",
+    "question": "When using an infrastructure as a service (IaaS) solution, which of the following is not an essential benefit for the customer?",
+    "options": ["Removing the need to maintain a license library", "Metered service", "Energy and cooling efficiencies", "Transfer of ownership cost"],
+    "answer": "A",
+    "explanation": "In an IaaS model, the customer must still maintain licenses for operating systems (OSs) and applications used in the cloud environment. In PaaS models, the licensing for OSs is managed by the cloud provider, but the customer is still responsible for application licenses; in SaaS models, the customer does not need to manage a license library."
+  }
+];
+
+function loadWithBuiltin() {
+  load();
+  // 將內建題庫裡、localStorage 沒有的題目補進去
+  const existingIds = new Set(questions.map(q => q.id));
+  BUILTIN_QUESTIONS.forEach(q => {
+    if (!existingIds.has(q.id)) {
+      questions.push(q);
+      if (!progress[q.id]) progress[q.id] = { stars: 0, heart: false };
+    }
+  });
+  save();
+}
+
+loadWithBuiltin(); renderHome();
+
+// 註冊 Service Worker
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  });
+}
+
+</script>
+</body>
+</html>

@@ -68,6 +68,7 @@
   .stat-val.accent { color: var(--accent); }
   .stat-val.heart { color: var(--heart); }
   .stat-val.star { color: var(--star); }
+  .stat-val.wrong-col { color: var(--red); }
   .stat-label { font-size: 11px; color: var(--muted); margin-top: 2px; }
 
   .section-title { font-size: 12px; font-weight: 700; letter-spacing: 2px; color: var(--muted); text-transform: uppercase; margin-bottom: 12px; }
@@ -207,10 +208,11 @@
         <button class="icon-btn" onclick="openImport()" title="匯入題庫">＋</button>
       </div>
     </div>
-    <div class="stats-bar">
+    <div class="stats-bar" style="grid-template-columns:repeat(4,1fr)">
       <div class="stat-card"><div class="stat-val accent" id="total-count">0</div><div class="stat-label">題目總數</div></div>
       <div class="stat-card"><div class="stat-val heart" id="heart-count">0</div><div class="stat-label">❤️ 重要題</div></div>
-      <div class="stat-card"><div class="stat-val star" id="mastered-count">0</div><div class="stat-label">⭐ 已熟練</div></div>
+      <div class="stat-card"><div class="stat-val star" id="mastered-count">0</div><div class="stat-label">✅ 已熟練</div></div>
+      <div class="stat-card"><div class="stat-val wrong-col" id="wrong-count">0</div><div class="stat-label">❌ 錯誤題</div></div>
     </div>
     <div id="home-content"></div>
   </div>
@@ -367,7 +369,7 @@
 <script>
 const STARS_TO_MASTER = 5;
 let questions = [];
-let progress = {};
+let progress = {}; // { qId: { stars, heart, wrong } }
 let currentSession = { questions:[], idx:0, correct:0, wrong:0, mode:'', masteredThisSession:0 };
 let lastMode = '', lastChapter = '';
 let multiSelected = new Set();
@@ -380,7 +382,7 @@ function load() {
   try {
     const q = localStorage.getItem('quiz_q'); const p = localStorage.getItem('quiz_p');
     if (q) questions = JSON.parse(q); if (p) progress = JSON.parse(p);
-    questions.forEach(q => { if (!progress[q.id]) progress[q.id] = { stars:0, heart:false }; });
+    questions.forEach(q => { if (!progress[q.id]) progress[q.id] = { stars:0, heart:false, wrong:false }; });
   } catch(e){}
 }
 
@@ -400,11 +402,13 @@ function renderHome() {
     return;
   }
   const hc = questions.filter(q => progress[q.id]?.heart).length;
+  const wc = questions.filter(q => progress[q.id]?.wrong).length;
   el.innerHTML = `
     <div class="section-title">練習模式</div>
     <div class="mode-grid">
       <button class="mode-btn" onclick="startRandom()"><div class="mode-icon">🎲</div><div class="mode-name">隨機出題</div><div class="mode-desc">全部題目隨機</div></button>
       <button class="mode-btn heart-mode" onclick="startHeart()"><div class="mode-icon">❤️</div><div class="mode-name">重要題目</div><div class="mode-desc">${hc} 題已標記</div></button>
+      <button class="mode-btn" style="border-color:${wc>0?'rgba(240,77,106,0.4)':'var(--border)'}" onclick="startWrong()"><div class="mode-icon">❌</div><div class="mode-name">錯誤題目</div><div class="mode-desc">${wc} 題答錯過</div></button>
     </div>
     <div class="section-title">按章節出題</div>
     ${renderChapterPreview()}`;
@@ -414,6 +418,7 @@ function updateStatsBar() {
   document.getElementById('total-count').textContent = questions.length;
   document.getElementById('heart-count').textContent = questions.filter(q => progress[q.id]?.heart).length;
   document.getElementById('mastered-count').textContent = questions.filter(q => (progress[q.id]?.stars||0) >= 1).length;
+  document.getElementById('wrong-count').textContent = questions.filter(q => progress[q.id]?.wrong).length;
 }
 
 function getChapters() { return [...new Set(questions.map(q => q.chapter || '未分類'))]; }
@@ -421,19 +426,26 @@ function getChapters() { return [...new Set(questions.map(q => q.chapter || '未
 function chapterItemHTML(ch) {
   const qs = questions.filter(q => (q.chapter||'未分類') === ch);
   const total = qs.length;
+  const attempted = qs.filter(q => (progress[q.id]?.stars||0) >= 1 || progress[q.id]?.wrong).length;
   const mastered = qs.filter(q => (progress[q.id]?.stars||0) >= 1).length;
-  const pct = total > 0 ? Math.round(mastered / total * 100) : 0;
+  const wrongCount = qs.filter(q => progress[q.id]?.wrong).length;
+  const famPct = total > 0 ? Math.round(mastered / total * 100) : 0;
+  const passPct = attempted > 0 ? Math.round(mastered / attempted * 100) : 0;
   const esc = ch.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-  const barColor = pct >= 80 ? 'var(--green)' : pct >= 40 ? 'var(--accent2)' : 'var(--accent)';
+  const barColor = famPct >= 80 ? 'var(--green)' : famPct >= 40 ? 'var(--accent2)' : 'var(--accent)';
+  const passColor = passPct >= 80 ? 'var(--green)' : passPct >= 60 ? 'var(--accent2)' : 'var(--red)';
   return `<button class="chapter-item" onclick="startChapter('${esc}')" style="flex-direction:column;align-items:stretch;gap:10px">
     <div style="display:flex;justify-content:space-between;align-items:center">
-      <div><div class="chapter-name">${ch}</div><div class="chapter-count">${total} 題</div></div>
-      <div style="font-size:14px;font-weight:700;color:${barColor};font-family:'Space Mono',monospace">${pct}%</div>
+      <div><div class="chapter-name">${ch}</div><div class="chapter-count">${total} 題${wrongCount>0?' · <span style="color:var(--red)">❌ '+wrongCount+' 錯誤</span>':''}</div></div>
+      <div style="font-size:14px;font-weight:700;color:${barColor};font-family:'Space Mono',monospace">${famPct}%</div>
     </div>
     <div style="height:6px;background:var(--border);border-radius:99px;overflow:hidden">
-      <div style="height:100%;width:${pct}%;background:${barColor};border-radius:99px;transition:width 0.4s ease"></div>
+      <div style="height:100%;width:${famPct}%;background:${barColor};border-radius:99px;transition:width 0.4s ease"></div>
     </div>
-    <div style="font-size:11px;color:var(--muted);text-align:right">✅ ${mastered} / ${total} 題已答對過</div>
+    <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted)">
+      <span>✅ ${mastered} / ${total} 題已答對過</span>
+      <span>合格率 <b style="color:${passColor}">${attempted>0?passPct+'%':'--'}</b></span>
+    </div>
   </button>`;
 }
 
@@ -457,9 +469,16 @@ function startHeart() {
   lastMode='heart'; lastChapter=''; beginQuiz(qs,'❤️ 重要題');
 }
 function startChapter(ch) { lastMode='chapter'; lastChapter=ch; beginQuiz(shuffle(questions.filter(q=>(q.chapter||'未分類')===ch)), ch); }
+function startWrong() {
+  const qs = shuffle(questions.filter(q => progress[q.id]?.wrong));
+  if (!qs.length) { showToast('目前沒有錯誤題目！繼續練習後會自動記錄'); return; }
+  lastMode = 'wrong'; lastChapter = '';
+  beginQuiz(qs, '❌ 錯誤題');
+}
 function retryQuiz() {
   if (lastMode==='chapter') startChapter(lastChapter);
   else if (lastMode==='heart') startHeart();
+  else if (lastMode==='wrong') startWrong();
   else startRandom();
 }
 function beginQuiz(qs, label) {
@@ -482,6 +501,7 @@ function renderQuestion() {
   const typeLabel = q.type==='multi' ? '多選題' : q.type==='tf' ? '是非題' : '單選題';
   const typeCls = q.type==='multi' ? 'multi' : q.type==='tf' ? 'tf' : 'mc';
   const heartIcon = prog.heart ? '❤️' : '🤍';
+  const wrongBadge = prog.wrong ? '<span style="font-size:11px;background:rgba(240,77,106,0.15);color:var(--red);padding:3px 8px;border-radius:99px;border:1px solid rgba(240,77,106,0.3)">❌ 曾答錯</span>' : '';
   const letters = ['A','B','C','D','E','F'];
 
   let body = '';
@@ -504,7 +524,7 @@ function renderQuestion() {
   document.getElementById('quiz-area').innerHTML = `
     <div class="question-card">
       <div class="q-top">
-        <div class="q-tags"><div class="q-chapter-tag">${q.chapter||'未分類'}</div><div class="q-type-tag ${typeCls}">${typeLabel}</div></div>
+        <div class="q-tags"><div class="q-chapter-tag">${q.chapter||'未分類'}</div><div class="q-type-tag ${typeCls}">${typeLabel}</div>${wrongBadge}</div>
         <div class="heart-toggle" onclick="toggleHeart('${q.id}')" id="heart-${q.id}">${heartIcon}</div>
       </div>
       <div class="q-stars" id="stars-${q.id}">${starsHTML(prog.stars)}</div>
@@ -593,15 +613,17 @@ function showFeedback(correct, ansLabel, q) {
 }
 
 function recordAnswer(qId, correct) {
-  if (!progress[qId]) progress[qId] = {stars:0, heart:false};
+  if (!progress[qId]) progress[qId] = {stars:0, heart:false, wrong:false};
   const prev = progress[qId].stars;
   if (correct) {
     currentSession.correct++;
     progress[qId].stars = Math.min((progress[qId].stars||0)+1, STARS_TO_MASTER);
     if (prev < STARS_TO_MASTER && progress[qId].stars >= STARS_TO_MASTER) currentSession.masteredThisSession++;
+    // 答對不清除 wrong 標記，保留歷史錯誤記錄
   } else {
     currentSession.wrong++;
     progress[qId].stars = 0;
+    progress[qId].wrong = true; // 標記為曾答錯
   }
   const se = document.getElementById('stars-'+qId); if (se) se.innerHTML = starsHTML(progress[qId].stars);
   save();
@@ -742,8 +764,8 @@ function importBackup(e) {
 function showBackupMsg(msg, type) { const el=document.getElementById('backup-msg'); el.textContent=msg; el.className='import-msg '+type; }
 
 function resetProgress() {
-  if (!confirm('確定要清除所有星星和愛心標記嗎？\n題目會保留，但所有進度歸零。')) return;
-  questions.forEach(q => { progress[q.id] = { stars: 0, heart: false }; });
+  if (!confirm('確定要清除所有星星、愛心和錯誤標記嗎？\n題目會保留，但所有進度歸零。')) return;
+  questions.forEach(q => { progress[q.id] = { stars: 0, heart: false, wrong: false }; });
   save();
   showBackupMsg('✅ 標記已全部歸零！', 'ok');
   setTimeout(() => { closeBackup(); renderHome(); }, 1000);

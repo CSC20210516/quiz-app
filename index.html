@@ -792,42 +792,7 @@ function showToast(msg) {
   clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove('show'),2000);
 }
 
-// ===== 內建題庫 =====
-const BUILTIN_QUESTIONS = [
-  {
-    "id": "builtin_1",
-    "chapter": "Assessment Test",
-    "type": "mc",
-    "question": "What type of solutions enable enterprises or individuals to store data and computer files on the internet using a storage service provider rather than keeping the data locally on a physical disk such as a hard drive or tape backup?",
-    "options": ["Online backups", "Cloud backup solutions", "Removable hard drives", "Masking"],
-    "answer": "B",
-    "explanation": "Cloud backup solutions enable enterprises to store their data and computer files on the internet using a storage service rather than storing data locally on a hard disk or tape backup. This has the added benefit of providing access to data should infrastructure or equipment at the primary business location be damaged in some way that prevents accessing or restoring data locally. Online backups and removable hard drives are other options but do not by default supply the customer with ubiquitous access. Masking is a technology used to partially conceal sensitive data."
-  },
-  {
-    "id": "builtin_2",
-    "chapter": "Assessment Test",
-    "type": "mc",
-    "question": "When using an infrastructure as a service (IaaS) solution, which of the following is not an essential benefit for the customer?",
-    "options": ["Removing the need to maintain a license library", "Metered service", "Energy and cooling efficiencies", "Transfer of ownership cost"],
-    "answer": "A",
-    "explanation": "In an IaaS model, the customer must still maintain licenses for operating systems (OSs) and applications used in the cloud environment. In PaaS models, the licensing for OSs is managed by the cloud provider, but the customer is still responsible for application licenses; in SaaS models, the customer does not need to manage a license library."
-  }
-];
-
-function loadWithBuiltin() {
-  load();
-  // 將內建題庫裡、localStorage 沒有的題目補進去
-  const existingIds = new Set(questions.map(q => q.id));
-  BUILTIN_QUESTIONS.forEach(q => {
-    if (!existingIds.has(q.id)) {
-      questions.push(q);
-      if (!progress[q.id]) progress[q.id] = { stars: 0, heart: false };
-    }
-  });
-  save();
-}
-
-loadWithBuiltin(); renderHome();
+load(); renderHome();
 
 // 註冊 Service Worker
 if ('serviceWorker' in navigator) {

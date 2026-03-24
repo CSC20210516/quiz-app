@@ -289,6 +289,14 @@
         <input type="file" id="backup-file-input" accept=".json" onchange="importBackup(event)">
       </div>
 
+      <div style="background:rgba(240,77,106,0.06);border:1px solid rgba(240,77,106,0.25);border-radius:12px;padding:18px">
+        <div style="font-weight:700;margin-bottom:6px;color:var(--red)">🗑️ 全部重置</div>
+        <div style="font-size:13px;color:var(--muted);margin-bottom:14px;line-height:1.6">
+          清除所有題目、星星、❤️ 標記，回到初始狀態。<b style="color:var(--red)">此操作無法復原</b>，請先匯出備份。
+        </div>
+        <button onclick="resetAll()" style="width:100%;padding:13px;border-radius:10px;background:rgba(240,77,106,0.15);border:1.5px solid var(--red);color:var(--red);font-size:15px;font-weight:700;cursor:pointer;font-family:'Noto Sans TC',sans-serif;transition:all 0.2s" onmouseover="this.style.background='rgba(240,77,106,0.28)'" onmouseout="this.style.background='rgba(240,77,106,0.15)'">🗑️ 全部重置</button>
+      </div>
+
     </div>
 
     <div class="import-msg" id="backup-msg"></div>
@@ -625,7 +633,7 @@ function handleFile(e) {
   const file = e.target.files[0]; if (!file) return;
   const r = new FileReader();
   r.onload = ev => { document.getElementById('json-paste').value = ev.target.result; switchTab('paste'); };
-  r.readAsText(file);
+  r.readAsText(file, 'UTF-8');
 }
 const dz = document.getElementById('file-drop');
 dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag'); });
@@ -639,10 +647,29 @@ dz.addEventListener('drop', e => {
 });
 
 function doImport() {
-  const raw = document.getElementById('json-paste').value.trim();
+  let raw = document.getElementById('json-paste').value.trim();
   if (!raw) { showImportMsg('請先選擇或貼上 JSON 內容','err'); return; }
+
+  // 修正特殊字元：清除 BOM、全形引號、非標準空白等
+  raw = raw.replace(/^\uFEFF/, '');                          // 移除 BOM
+  raw = raw.replace(/[\u2018\u2019]/g, "'");                 // 全形單引號
+  raw = raw.replace(/[\u201C\u201D]/g, '"');                 // 全形雙引號
+  raw = raw.replace(/[\u00A0\u2003\u2002\u2009]/g, ' ');    // 特殊空白
+  raw = raw.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, ''); // 控制字元
+
   let parsed;
-  try { parsed = JSON.parse(raw); } catch(e) { showImportMsg('JSON 格式錯誤：'+e.message,'err'); return; }
+  try {
+    parsed = JSON.parse(raw);
+  } catch(e) {
+    // 嘗試二次修復：移除行尾逗號（常見錯誤）
+    try {
+      const fixed = raw.replace(/,\s*([}\]])/g, '$1');
+      parsed = JSON.parse(fixed);
+    } catch(e2) {
+      showImportMsg('JSON 格式錯誤：' + e.message, 'err'); return;
+    }
+  }
+
   if (!Array.isArray(parsed)||!parsed.length) { showImportMsg('格式錯誤：需要題目陣列 [ ]','err'); return; }
   const norm = parsed.map((q,i) => ({
     id: q.id||('q_'+Date.now()+'_'+i),
@@ -701,6 +728,21 @@ function importBackup(e) {
 }
 
 function showBackupMsg(msg, type) { const el=document.getElementById('backup-msg'); el.textContent=msg; el.className='import-msg '+type; }
+
+function resetAll() {
+  if (!confirm('⚠️ 確定要全部重置嗎？\n\n所有題目、星星、愛心標記都會清除，此操作無法復原！')) return;
+  questions = [];
+  progress = {};
+  try { localStorage.removeItem('quiz_q'); localStorage.removeItem('quiz_p'); } catch(e){}
+  // 重新載入內建題目但清空進度
+  BUILTIN_QUESTIONS.forEach(q => {
+    questions.push(q);
+    progress[q.id] = { stars: 0, heart: false };
+  });
+  save();
+  showBackupMsg('✅ 已重置完成！', 'ok');
+  setTimeout(() => { closeBackup(); renderHome(); }, 1000);
+}
 
 // drag drop for backup
 const bdz = document.getElementById('backup-drop');

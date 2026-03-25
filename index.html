@@ -588,12 +588,12 @@ function renderQuestion() {
     </div>`;
   } else if (q.type === 'multi') {
     body = `<div class="options-list" id="opts">
-      ${(q.options||[]).map((opt,i) => `<button class="option-btn" id="opt-${letters[i]}" onclick="toggleMulti('${letters[i]}')"><div class="option-key" id="key-${letters[i]}">${letters[i]}</div><div>${opt}</div></button>`).join('')}
+      ${(q.options||[]).map((opt,i) => `<button class="option-btn" id="opt-${letters[i]}" onclick="toggleMulti('${letters[i]}')"><div class="option-key" id="key-${letters[i]}">${letters[i]}</div><div>${renderText(opt)}</div></button>`).join('')}
     </div>
     <button class="multi-confirm-btn" id="multi-confirm" onclick="confirmMulti()">✔ 確認作答</button>`;
   } else {
     body = `<div class="options-list">
-      ${(q.options||[]).map((opt,i) => `<button class="option-btn" onclick="answerMC('${letters[i]}')"><div class="option-key">${letters[i]}</div><div>${opt}</div></button>`).join('')}
+      ${(q.options||[]).map((opt,i) => `<button class="option-btn" onclick="answerMC('${letters[i]}')"><div class="option-key">${letters[i]}</div><div>${renderText(opt)}</div></button>`).join('')}
     </div>`;
   }
 
@@ -604,7 +604,7 @@ function renderQuestion() {
         <div class="heart-toggle" onclick="toggleHeart('${q.id}')" id="heart-${q.id}">${heartIcon}</div>
       </div>
       <div class="q-stars" id="stars-${q.id}">${starsHTML(prog.stars)}</div>
-      <div class="q-text">${q.question}</div>
+      <div class="q-text">${renderText(q.question)}</div>
       ${q.type==='multi' ? '<div class="q-hint">※ 可複選，選完後按「確認作答」</div>' : ''}
     </div>
     ${body}
@@ -618,6 +618,12 @@ function starsHTML(count) {
   for (let i = 0; i < STARS_TO_MASTER; i++) s += i < count ? '⭐' : '☆';
   if (count >= STARS_TO_MASTER) s += ' <span style="font-size:11px;color:var(--star);margin-left:4px">熟練！</span>';
   return s;
+}
+
+// 把 \n 轉成 <br> 安全顯示
+function renderText(s) {
+  if (!s) return '';
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
 }
 
 // ANSWERS
@@ -687,10 +693,10 @@ function showFeedback(correct, ansLabel, q) {
     </div>`;
   if (correct) {
     fb.className = 'result-feedback correct-fb show';
-    fb.innerHTML = `<div class="fb-title">✅ 答對了！</div>${q.explanation?'<div class="fb-answer">'+q.explanation+'</div>':''}${noteHTML}`;
+    fb.innerHTML = `<div class="fb-title">✅ 答對了！</div>${q.explanation?'<div class="fb-answer">'+renderText(q.explanation)+'</div>':''}${noteHTML}`;
   } else {
     fb.className = 'result-feedback wrong-fb show';
-    fb.innerHTML = `<div class="fb-title">❌ 答錯了</div><div class="fb-answer">正確答案：${ansLabel}</div>${q.explanation?'<div class="fb-answer">'+q.explanation+'</div>':''}${noteHTML}`;
+    fb.innerHTML = `<div class="fb-title">❌ 答錯了</div><div class="fb-answer">正確答案：${ansLabel}</div>${q.explanation?'<div class="fb-answer">'+renderText(q.explanation)+'</div>':''}${noteHTML}`;
   }
   document.getElementById('next-btn').classList.add('show');
 }
@@ -797,14 +803,21 @@ function doImport() {
   }
 
   if (!Array.isArray(parsed)||!parsed.length) { showImportMsg('格式錯誤：需要題目陣列 [ ]','err'); return; }
+
+  // 清理文字欄位中的 HTML 換行標籤
+  function cleanText(s) {
+    if (!s) return '';
+    return String(s).replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]+>/g, '').trim();
+  }
+
   const norm = parsed.map((q,i) => ({
     id: q.id||('q_'+Date.now()+'_'+i),
     chapter: q.chapter||'',
     type: q.type||'mc',
-    question: q.question||'',
-    options: q.options||[],
+    question: cleanText(q.question),
+    options: (q.options||[]).map(o => cleanText(o)),
     answer: q.answer,
-    explanation: q.explanation||''
+    explanation: cleanText(q.explanation)
   }));
   const exIds = new Set(questions.map(q=>q.id));
   let added=0, updated=0;

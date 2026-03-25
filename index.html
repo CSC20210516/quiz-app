@@ -334,6 +334,19 @@
   </div>
 </div>
 
+<!-- CHAPTER NOTE MODAL -->
+<div class="modal-backdrop" id="chapter-note-modal">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-title">✏️ 章節備註</div>
+    <div class="modal-sub" id="chapter-note-name" style="color:var(--accent);font-weight:600"></div>
+    <textarea class="json-input" id="chapter-note-input" style="min-height:120px;margin-top:12px;font-family:'Noto Sans TC',sans-serif;font-size:14px" placeholder="輸入這個章節的備註，例如：考試重點、複習提醒、難易度說明..."></textarea>
+    <div class="modal-actions" style="margin-top:12px">
+      <button class="btn-close" onclick="closeChapterNote()">取消</button>
+      <button class="btn-import" onclick="saveChapterNote()">儲存備註</button>
+    </div>
+  </div>
+</div>
+
 <!-- IMPORT MODAL -->
 <div class="modal-backdrop" id="import-modal">
   <div class="modal">
@@ -393,18 +406,25 @@
 const STARS_TO_MASTER = 5;
 let questions = [];
 let progress = {}; // { qId: { stars, heart, wrong } }
+let chapterNotes = {}; // { chapterName: noteText }
 let currentSession = { questions:[], idx:0, correct:0, wrong:0, mode:'', masteredThisSession:0 };
 let lastMode = '', lastChapter = '';
 let multiSelected = new Set();
 let multiAnswered = false;
 
 function save() {
-  try { localStorage.setItem('quiz_q', JSON.stringify(questions)); localStorage.setItem('quiz_p', JSON.stringify(progress)); } catch(e){}
+  try {
+    localStorage.setItem('quiz_q', JSON.stringify(questions));
+    localStorage.setItem('quiz_p', JSON.stringify(progress));
+    localStorage.setItem('quiz_cn', JSON.stringify(chapterNotes));
+  } catch(e){}
 }
 function load() {
   try {
     const q = localStorage.getItem('quiz_q'); const p = localStorage.getItem('quiz_p');
+    const cn = localStorage.getItem('quiz_cn');
     if (q) questions = JSON.parse(q); if (p) progress = JSON.parse(p);
+    if (cn) chapterNotes = JSON.parse(cn);
     questions.forEach(q => { if (!progress[q.id]) progress[q.id] = { stars:0, heart:false, wrong:false, note:'' }; });
   } catch(e){}
 }
@@ -457,13 +477,15 @@ function chapterItemHTML(ch) {
   const esc = ch.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
   const barColor = famPct >= 80 ? 'var(--green)' : famPct >= 40 ? 'var(--accent2)' : 'var(--accent)';
   const passColor = passPct >= 80 ? 'var(--green)' : passPct >= 60 ? 'var(--accent2)' : 'var(--red)';
+  const note = chapterNotes[ch] || '';
   return `<div class="chapter-item" style="flex-direction:column;align-items:stretch;gap:10px;padding:0;overflow:hidden">
     <div style="display:flex;align-items:stretch">
       <button onclick="startChapter('${esc}')" style="flex:1;background:transparent;border:none;color:var(--text);text-align:left;padding:14px 16px;cursor:pointer">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:${note?'4px':'10px'}">
           <div><div class="chapter-name">${ch}</div><div class="chapter-count">${total} 題${wrongCount>0?' · <span style="color:var(--red)">❌ '+wrongCount+' 錯誤</span>':''}</div></div>
           <div style="font-size:14px;font-weight:700;color:${barColor};font-family:'Space Mono',monospace">${famPct}%</div>
         </div>
+        ${note ? `<div style="font-size:12px;color:var(--accent2);background:rgba(245,166,35,0.1);border-radius:6px;padding:5px 10px;margin-bottom:10px;text-align:left">📌 ${note}</div>` : ''}
         <div style="height:6px;background:var(--border);border-radius:99px;overflow:hidden;margin-bottom:8px">
           <div style="height:100%;width:${famPct}%;background:${barColor};border-radius:99px;transition:width 0.4s ease"></div>
         </div>
@@ -472,7 +494,10 @@ function chapterItemHTML(ch) {
           <span>合格率 <b style="color:${passColor}">${attempted>0?passPct+'%':'--'}</b></span>
         </div>
       </button>
-      <button onclick="startChapterRandom('${esc}')" title="章節隨機出題" style="width:52px;background:rgba(124,106,245,0.08);border:none;border-left:1px solid var(--border);color:var(--accent);font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background 0.2s" onmouseover="this.style.background='rgba(124,106,245,0.2)'" onmouseout="this.style.background='rgba(124,106,245,0.08)'">🎲</button>
+      <div style="display:flex;flex-direction:column;border-left:1px solid var(--border);flex-shrink:0">
+        <button onclick="openChapterNote('${esc}')" title="編輯章節備註" style="width:52px;flex:1;background:rgba(245,166,35,0.08);border:none;color:var(--accent2);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background 0.2s;border-bottom:1px solid var(--border)" onmouseover="this.style.background='rgba(245,166,35,0.2)'" onmouseout="this.style.background='rgba(245,166,35,0.08)'">✏️</button>
+        <button onclick="startChapterRandom('${esc}')" title="章節隨機出題" style="width:52px;flex:1;background:rgba(124,106,245,0.08);border:none;color:var(--accent);font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background 0.2s" onmouseover="this.style.background='rgba(124,106,245,0.2)'" onmouseout="this.style.background='rgba(124,106,245,0.08)'">🎲</button>
+      </div>
     </div>
   </div>`;
 }
@@ -498,6 +523,28 @@ function startHeart() {
 }
 function startChapter(ch) { lastMode='chapter'; lastChapter=ch; beginQuiz(shuffle(questions.filter(q=>(q.chapter||'未分類')===ch)), ch); }
 function startChapterRandom(ch) { lastMode='chapter'; lastChapter=ch; beginQuiz(shuffle(questions.filter(q=>(q.chapter||'未分類')===ch)), '🎲 '+ch); }
+
+// CHAPTER NOTES
+let _editingChapter = '';
+function openChapterNote(ch) {
+  _editingChapter = ch;
+  document.getElementById('chapter-note-name').textContent = ch;
+  document.getElementById('chapter-note-input').value = chapterNotes[ch] || '';
+  document.getElementById('chapter-note-modal').classList.add('open');
+}
+function closeChapterNote() {
+  document.getElementById('chapter-note-modal').classList.remove('open');
+}
+function saveChapterNote() {
+  const val = document.getElementById('chapter-note-input').value.trim();
+  if (val) chapterNotes[_editingChapter] = val;
+  else delete chapterNotes[_editingChapter];
+  save();
+  closeChapterNote();
+  renderHome();
+  if (document.getElementById('screen-chapters').classList.contains('active')) renderChapters();
+  showToast('📌 章節備註已儲存');
+}
 function startWrong() {
   const qs = shuffle(questions.filter(q => progress[q.id]?.wrong));
   if (!qs.length) { showToast('目前沒有錯誤題目！繼續練習後會自動記錄'); return; }
@@ -778,7 +825,7 @@ function closeBackup() { document.getElementById('backup-modal').classList.remov
 
 function exportBackup() {
   if (!questions.length) { showBackupMsg('尚無題庫可匯出','err'); return; }
-  const data = { version: 1, exportedAt: new Date().toISOString(), questions, progress };
+  const data = { version: 1, exportedAt: new Date().toISOString(), questions, progress, chapterNotes };
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -797,7 +844,8 @@ function importBackup(e) {
       if (!data.questions || !Array.isArray(data.questions)) { showBackupMsg('❌ 不是有效的備份檔案', 'err'); return; }
       questions = data.questions;
       progress = data.progress || {};
-      questions.forEach(q => { if (!progress[q.id]) progress[q.id] = {stars:0, heart:false}; });
+      chapterNotes = data.chapterNotes || {};
+      questions.forEach(q => { if (!progress[q.id]) progress[q.id] = {stars:0, heart:false, wrong:false, note:''}; });
       save();
       showBackupMsg('✅ 還原成功！共 ' + questions.length + ' 題', 'ok');
       setTimeout(() => { closeBackup(); renderHome(); }, 1200);
@@ -817,10 +865,9 @@ function resetProgress() {
 }
 
 function resetAll() {
-  if (!confirm('⚠️ 確定要清除所有題目嗎？\n\n題目、星星、愛心標記全部清除，此操作無法復原！')) return;
-  questions = [];
-  progress = {};
-  try { localStorage.removeItem('quiz_q'); localStorage.removeItem('quiz_p'); } catch(e){}
+  if (!confirm('⚠️ 確定要清除所有題目嗎？\n\n題目、星星、愛心標記、章節備註全部清除，此操作無法復原！')) return;
+  questions = []; progress = {}; chapterNotes = {};
+  try { localStorage.removeItem('quiz_q'); localStorage.removeItem('quiz_p'); localStorage.removeItem('quiz_cn'); } catch(e){}
   save();
   showBackupMsg('✅ 已全部清除！', 'ok');
   setTimeout(() => { closeBackup(); renderHome(); }, 1000);
@@ -839,7 +886,8 @@ bdz.addEventListener('drop', e => {
       const data = JSON.parse(ev.target.result);
       if (!data.questions || !Array.isArray(data.questions)) { showBackupMsg('❌ 不是有效的備份檔案', 'err'); return; }
       questions = data.questions; progress = data.progress || {};
-      questions.forEach(q => { if (!progress[q.id]) progress[q.id] = {stars:0, heart:false}; });
+      chapterNotes = data.chapterNotes || {};
+      questions.forEach(q => { if (!progress[q.id]) progress[q.id] = {stars:0, heart:false, wrong:false, note:''}; });
       save(); showBackupMsg('✅ 還原成功！共 ' + questions.length + ' 題', 'ok');
       setTimeout(() => { closeBackup(); renderHome(); }, 1200);
     } catch(err) { showBackupMsg('❌ 檔案格式錯誤：' + err.message, 'err'); }

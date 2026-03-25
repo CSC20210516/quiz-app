@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>題庫練習系統｜使用說明</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f8f7ff;
+    --surface: #ffffff;
+    --border: #e4e2f5;
+    --accent: #6c5ce7;
+    --accent-light: #ede9ff;
+    --accent2: #f39c12;
+    --green: #00b894;
+    --red: #e17055;
+    --text: #2d2d3a;
+    --muted: #888899;
+    --radius: 14px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Noto Sans TC', sans-serif;
+    background: var(--bg); color: var(--text);
+    line-height: 1.7; font-size: 16px;
+  }
+
+  /* NAV */
+  .nav {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(255,255,255,0.92); backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 24px;
+  }
+  .nav-inner {
+    max-width: 1000px; margin: 0 auto;
+    display: flex; align-items: center; justify-content: space-between;
+    height: 60px;
+  }
+  .nav-logo { font-size: 18px; font-weight: 900; color: var(--accent); }
+  .nav-links { display: flex; gap: 24px; }
+  .nav-links a {
+    font-size: 14px; color: var(--muted); text-decoration: none;
+    transition: color 0.2s; font-weight: 500;
+  }
+  .nav-links a:hover { color: var(--accent); }
+
+  /* HERO */
+  .hero {
+    background: linear-gradient(135deg, #6c5ce7 0%, #a29bfe 100%);
+    color: white; padding: 72px 24px; text-align: center;
+  }
+  .hero-badge {
+    display: inline-block; background: rgba(255,255,255,0.2);
+    border: 1px solid rgba(255,255,255,0.35); border-radius: 99px;
+    padding: 6px 18px; font-size: 13px; margin-bottom: 24px; letter-spacing: 1px;
+  }
+  .hero h1 { font-size: clamp(32px, 6vw, 52px); font-weight: 900; margin-bottom: 16px; line-height: 1.2; }
+  .hero p { font-size: 18px; opacity: 0.88; max-width: 560px; margin: 0 auto 32px; }
+  .hero-btns { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+  .hero-btn {
+    padding: 13px 28px; border-radius: 10px; font-size: 15px; font-weight: 700;
+    cursor: pointer; text-decoration: none; font-family: 'Noto Sans TC', sans-serif;
+    transition: all 0.2s;
+  }
+  .hero-btn.primary { background: white; color: var(--accent); }
+  .hero-btn.primary:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.15); }
+  .hero-btn.secondary { background: rgba(255,255,255,0.15); color: white; border: 1px solid rgba(255,255,255,0.4); }
+  .hero-btn.secondary:hover { background: rgba(255,255,255,0.25); }
+
+  /* FEATURE CHIPS */
+  .chips { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-top: 32px; }
+  .chip {
+    background: rgba(255,255,255,0.18); border: 1px solid rgba(255,255,255,0.3);
+    border-radius: 99px; padding: 6px 14px; font-size: 13px;
+  }
+
+  /* LAYOUT */
+  .container { max-width: 1000px; margin: 0 auto; padding: 0 24px; }
+  .section { padding: 64px 0; }
+  .section-label {
+    font-size: 12px; font-weight: 700; letter-spacing: 3px; color: var(--accent);
+    text-transform: uppercase; margin-bottom: 8px;
+  }
+  .section-title { font-size: clamp(24px, 4vw, 36px); font-weight: 900; margin-bottom: 12px; }
+  .section-desc { font-size: 16px; color: var(--muted); max-width: 600px; margin-bottom: 48px; }
+  .divider { border: none; border-top: 1px solid var(--border); }
+
+  /* FEATURE GRID */
+  .feature-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
+  .feature-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 24px;
+    transition: all 0.2s;
+  }
+  .feature-card:hover { border-color: var(--accent); box-shadow: 0 4px 20px rgba(108,92,231,0.1); transform: translateY(-2px); }
+  .feature-icon { font-size: 32px; margin-bottom: 14px; }
+  .feature-title { font-size: 17px; font-weight: 700; margin-bottom: 8px; }
+  .feature-desc { font-size: 14px; color: var(--muted); line-height: 1.65; }
+
+  /* STEPS */
+  .steps { display: flex; flex-direction: column; gap: 0; }
+  .step {
+    display: flex; gap: 20px; padding: 28px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .step:last-child { border-bottom: none; }
+  .step-num {
+    width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0;
+    background: var(--accent); color: white;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 900; font-size: 16px; font-family: 'Space Mono', monospace;
+    margin-top: 2px;
+  }
+  .step-content { flex: 1; }
+  .step-title { font-size: 17px; font-weight: 700; margin-bottom: 8px; }
+  .step-desc { font-size: 14px; color: var(--muted); line-height: 1.7; }
+  .step-desc b { color: var(--text); }
+  .step-sub {
+    margin-top: 14px; background: var(--bg); border: 1px solid var(--border);
+    border-radius: 10px; padding: 14px 16px;
+  }
+  .step-sub-item { font-size: 13px; color: var(--muted); padding: 3px 0; }
+  .step-sub-item b { color: var(--text); }
+
+  /* CODE BLOCK */
+  .code-block {
+    background: #1e1e2e; color: #cdd6f4; border-radius: 10px;
+    padding: 16px 20px; font-size: 13px; font-family: 'Space Mono', monospace;
+    margin-top: 12px; overflow-x: auto; line-height: 1.7;
+  }
+  .code-block .c { color: #6c7086; }
+  .code-block .k { color: #cba6f7; }
+  .code-block .s { color: #a6e3a1; }
+  .code-block .n { color: #89b4fa; }
+
+  /* JSON EXAMPLE */
+  .json-example {
+    background: #1e1e2e; border-radius: var(--radius); overflow: hidden;
+    margin-top: 24px;
+  }
+  .json-header {
+    background: #313244; padding: 10px 16px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .json-dot { width: 12px; height: 12px; border-radius: 50%; }
+  .json-filename { font-size: 13px; color: #6c7086; font-family: 'Space Mono', monospace; }
+  .json-body { padding: 20px; font-size: 13px; font-family: 'Space Mono', monospace; line-height: 1.8; color: #cdd6f4; overflow-x: auto; }
+  .jk { color: #89b4fa; }   /* key */
+  .js { color: #a6e3a1; }   /* string value */
+  .jn { color: #fab387; }   /* letter value */
+  .jc { color: #6c7086; }   /* comment */
+
+  /* TABLE */
+  .info-table { width: 100%; border-collapse: collapse; margin-top: 24px; font-size: 14px; }
+  .info-table th {
+    background: var(--accent-light); color: var(--accent);
+    padding: 12px 16px; text-align: left; font-weight: 700; font-size: 13px;
+    border-bottom: 2px solid var(--border);
+  }
+  .info-table td { padding: 12px 16px; border-bottom: 1px solid var(--border); }
+  .info-table tr:last-child td { border-bottom: none; }
+  .info-table tr:hover td { background: var(--bg); }
+  .tag {
+    display: inline-block; padding: 2px 10px; border-radius: 99px; font-size: 12px; font-weight: 600;
+  }
+  .tag.green { background: rgba(0,184,148,0.12); color: var(--green); }
+  .tag.orange { background: rgba(243,156,18,0.12); color: var(--accent2); }
+  .tag.red { background: rgba(225,112,85,0.12); color: var(--red); }
+  .tag.purple { background: var(--accent-light); color: var(--accent); }
+
+  /* CALLOUT */
+  .callout {
+    border-radius: 10px; padding: 16px 20px; margin: 20px 0;
+    display: flex; gap: 12px; align-items: flex-start; font-size: 14px;
+  }
+  .callout.info { background: var(--accent-light); border-left: 4px solid var(--accent); }
+  .callout.warn { background: rgba(243,156,18,0.1); border-left: 4px solid var(--accent2); }
+  .callout.tip { background: rgba(0,184,148,0.1); border-left: 4px solid var(--green); }
+  .callout-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+  .callout-text { line-height: 1.65; color: var(--text); }
+  .callout-text b { font-weight: 700; }
+
+  /* FAQ */
+  .faq-list { display: flex; flex-direction: column; gap: 12px; margin-top: 12px; }
+  .faq-item { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); }
+  .faq-q {
+    padding: 18px 20px; font-weight: 700; cursor: pointer;
+    display: flex; justify-content: space-between; align-items: center;
+    user-select: none;
+  }
+  .faq-q:hover { color: var(--accent); }
+  .faq-arrow { font-size: 18px; color: var(--muted); transition: transform 0.25s; }
+  .faq-a { padding: 0 20px 18px; font-size: 14px; color: var(--muted); line-height: 1.7; display: none; }
+  .faq-item.open .faq-a { display: block; }
+  .faq-item.open .faq-arrow { transform: rotate(180deg); }
+
+  /* FOOTER */
+  .footer {
+    background: var(--text); color: rgba(255,255,255,0.6);
+    text-align: center; padding: 32px 24px; font-size: 14px;
+  }
+  .footer a { color: rgba(255,255,255,0.8); }
+
+  /* MOBILE */
+  @media (max-width: 640px) {
+    .nav-links { display: none; }
+    .step { flex-direction: column; gap: 12px; }
+    .hero { padding: 48px 20px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav">
+  <div class="nav-inner">
+    <div class="nav-logo">📚 題庫練習系統</div>
+    <div class="nav-links">
+      <a href="#features">功能介紹</a>
+      <a href="#deploy">部署教學</a>
+      <a href="#usage">使用方式</a>
+      <a href="#format">題庫格式</a>
+      <a href="#faq">常見問題</a>
+    </div>
+  </div>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-badge">免費 · 開源 · 無需伺服器</div>
+  <h1>📚 題庫練習系統</h1>
+  <p>一個可以放在手機上的智慧題庫 App，支援隨機出題、進度追蹤、錯誤標記，自己匯入題目即可使用。</p>
+  <div class="hero-btns">
+    <a href="#deploy" class="hero-btn primary">🚀 開始部署</a>
+    <a href="#usage" class="hero-btn secondary">📖 查看功能</a>
+  </div>
+  <div class="chips">
+    <span class="chip">✅ 免費使用</span>
+    <span class="chip">📱 支援手機 App</span>
+    <span class="chip">🌐 GitHub Pages 部署</span>
+    <span class="chip">💾 離線可用</span>
+    <span class="chip">🔒 資料存在本機</span>
+  </div>
+</div>
+
+<!-- FEATURES -->
+<section class="section" id="features">
+  <div class="container">
+    <div class="section-label">功能介紹</div>
+    <div class="section-title">你需要的練習功能，全都有</div>
+    <p class="section-desc">從題庫匯入到進度追蹤，一個 HTML 檔案搞定所有事。</p>
+
+    <div class="feature-grid">
+      <div class="feature-card">
+        <div class="feature-icon">🎲</div>
+        <div class="feature-title">多種出題模式</div>
+        <div class="feature-desc">支援全部隨機、按章節出題、章節隨機、重要題目、錯誤題目五種練習模式，針對弱點加強。</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">⭐</div>
+        <div class="feature-title">星星熟練系統</div>
+        <div class="feature-desc">每答對一次累積一顆星（最多五顆），答錯清零。達到五顆星代表熟練，首頁即時統計熟練題數。</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">❤️</div>
+        <div class="feature-title">重要題目標記</div>
+        <div class="feature-desc">答題途中隨時點愛心標記重要題目，之後可以專門針對重要題目練習，與錯誤標記分開管理。</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">❌</div>
+        <div class="feature-title">錯誤題自動記錄</div>
+        <div class="feature-desc">答錯時自動標記，首頁顯示錯誤題數統計，可以單獨練習所有答錯過的題目，歷史累積保留。</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📊</div>
+        <div class="feature-title">章節熟悉度進度條</div>
+        <div class="feature-desc">每個章節顯示進度條、百分比、已答對題數，以及合格率（答對數÷已做過題數），一眼掌握學習狀況。</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📝</div>
+        <div class="feature-title">個人筆記欄位</div>
+        <div class="feature-desc">答完題看到解析後，可以輸入自己的筆記和重點，下次做同一題時自動顯示，備份時一起匯出。</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📥</div>
+        <div class="feature-title">彈性題庫匯入</div>
+        <div class="feature-desc">支援上傳 .json 檔案或直接貼上 JSON 文字，支援單選題、多選題、是非題三種題型，可含解析。</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">💾</div>
+        <div class="feature-title">備份與還原</div>
+        <div class="feature-desc">一鍵匯出備份檔案（含題目、星星、愛心、筆記），換電腦或手機時匯入備份即可完整還原。</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📱</div>
+        <div class="feature-title">PWA 手機 App</div>
+        <div class="feature-desc">支援加入手機主畫面，像真正的 App 一樣使用，全螢幕顯示、離線可用，iOS 和 Android 都支援。</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- DEPLOY -->
+<section class="section" id="deploy">
+  <div class="container">
+    <div class="section-label">部署教學</div>
+    <div class="section-title">5 分鐘部署到 GitHub Pages</div>
+    <p class="section-desc">不需要伺服器、不需要付費，只要有 GitHub 帳號就能免費架設。</p>
+
+    <div class="callout info">
+      <div class="callout-icon">💡</div>
+      <div class="callout-text"><b>需要準備：</b>一個免費的 <a href="https://github.com" target="_blank" style="color:var(--accent)">GitHub 帳號</a>，以及下載好的系統檔案（quiz-pwa.zip）。</div>
+    </div>
+
+    <div class="steps" style="margin-top:32px">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-content">
+          <div class="step-title">建立 GitHub Repository</div>
+          <div class="step-desc">登入 GitHub，點右上角「<b>＋</b>」→「<b>New repository</b>」，名稱填 <b>quiz-app</b>，選 <b>Public（公開）</b>，按「<b>Create repository</b>」建立。</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-content">
+          <div class="step-title">上傳系統檔案</div>
+          <div class="step-desc">將 <b>quiz-pwa.zip</b> 解壓縮，取得以下 5 個檔案，全部上傳到 repo：</div>
+          <div class="step-sub">
+            <div class="step-sub-item">📄 <b>index.html</b> — 主程式（必要）</div>
+            <div class="step-sub-item">📄 <b>manifest.json</b> — App 設定（必要）</div>
+            <div class="step-sub-item">📄 <b>sw.js</b> — 離線支援（必要）</div>
+            <div class="step-sub-item">🖼 <b>icon-192.png</b> — App 小圖示（必要）</div>
+            <div class="step-sub-item">🖼 <b>icon-512.png</b> — App 大圖示（必要）</div>
+          </div>
+          <div class="step-desc" style="margin-top:12px">上傳方式：點「<b>Add file</b>」→「<b>Upload files</b>」，拖曳全部 5 個檔案，填寫 Commit 訊息，按「<b>Commit changes</b>」。</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-content">
+          <div class="step-title">開啟 GitHub Pages</div>
+          <div class="step-desc">進入 repo 的「<b>Settings</b>」→ 左側「<b>Pages</b>」→ Source 選「<b>Deploy from a branch</b>」→ Branch 選「<b>main</b>」，資料夾選「<b>/ (root)</b>」→ 按「<b>Save</b>」。</div>
+          <div class="callout warn" style="margin-top:12px">
+            <div class="callout-icon">⏳</div>
+            <div class="callout-text">等待約 1～2 分鐘，右側 Deployments 出現綠色 ✅ 即代表部署完成。</div>
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-content">
+          <div class="step-title">取得你的專屬網址</div>
+          <div class="step-desc">你的系統網址格式為：</div>
+          <div class="code-block">https://<span class="n">你的GitHub帳號</span>.github.io/<span class="n">quiz-app</span></div>
+          <div class="step-desc" style="margin-top:12px">用任何瀏覽器打開這個網址，就可以開始使用！</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">5</div>
+        <div class="step-content">
+          <div class="step-title">加入手機主畫面（變成 App）</div>
+          <div class="step-desc">用手機瀏覽器打開網址後：</div>
+          <div class="step-sub">
+            <div class="step-sub-item">📱 <b>iPhone (Safari)：</b>點下方分享按鈕 ⬆️ →「加入主畫面」→「新增」</div>
+            <div class="step-sub-item">🤖 <b>Android (Chrome)：</b>點右上角選單 ⋮ →「新增至主畫面」→「新增」</div>
+          </div>
+          <div class="callout tip" style="margin-top:12px">
+            <div class="callout-icon">✅</div>
+            <div class="callout-text">加入後桌面會出現 📚 圖示，點開就像真正的 App，全螢幕顯示、離線也能使用！</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- USAGE -->
+<section class="section" id="usage">
+  <div class="container">
+    <div class="section-label">使用方式</div>
+    <div class="section-title">功能操作完整指南</div>
+    <p class="section-desc">從匯入題庫到日常練習，所有操作一次說清楚。</p>
+
+    <!-- 首頁說明 -->
+    <h3 style="font-size:20px;font-weight:800;margin-bottom:20px;color:var(--accent)">🏠 首頁介面</h3>
+    <table class="info-table">
+      <thead><tr><th>區塊</th><th>說明</th></tr></thead>
+      <tbody>
+        <tr><td>📊 上方統計欄</td><td>顯示題目總數 / 重要題數（❤️）/ 已熟練題數（✅）/ 錯誤題數（❌）</td></tr>
+        <tr><td>🎲 隨機出題</td><td>從全部題目隨機出題練習</td></tr>
+        <tr><td>❤️ 重要題目</td><td>只練習你用愛心標記的重要題目</td></tr>
+        <tr><td>❌ 錯誤題目</td><td>只練習所有歷史答錯過的題目</td></tr>
+        <tr><td>📚 章節列表</td><td>點章節名稱 → 按題目順序出題；點旁邊 🎲 → 章節內隨機出題</td></tr>
+        <tr><td>章節進度條</td><td>顯示熟悉度百分比、已答對題數、合格率（答對÷已做過）</td></tr>
+        <tr><td>💾 備份按鈕</td><td>匯出備份、匯入備份、標記歸零、題數歸零</td></tr>
+        <tr><td>＋ 匯入按鈕</td><td>上傳 .json 檔案或貼上 JSON 匯入題庫</td></tr>
+      </tbody>
+    </table>
+
+    <!-- 答題說明 -->
+    <h3 style="font-size:20px;font-weight:800;margin:40px 0 20px;color:var(--accent)">✏️ 答題介面</h3>
+    <table class="info-table">
+      <thead><tr><th>元素</th><th>說明</th></tr></thead>
+      <tbody>
+        <tr><td>上方進度條</td><td>顯示目前答題進度（第幾題 / 共幾題）</td></tr>
+        <tr><td>章節標籤</td><td>顯示該題所屬章節與題型（單選 / 多選 / 是非）</td></tr>
+        <tr><td>❌ 曾答錯 標籤</td><td>曾經答錯過的題目會顯示此紅色標記</td></tr>
+        <tr><td>⭐ 星星</td><td>顯示該題目目前累積的星星數（最多 5 顆）</td></tr>
+        <tr><td>🤍 / ❤️ 愛心</td><td>點擊切換重要標記，可在答題途中隨時標記</td></tr>
+        <tr><td>答題後解析</td><td>顯示答對 / 答錯提示，以及題目解析說明</td></tr>
+        <tr><td>📝 我的筆記</td><td>答完題後出現，可輸入個人筆記，按「儲存筆記」保存</td></tr>
+      </tbody>
+    </table>
+
+    <!-- 星星說明 -->
+    <h3 style="font-size:20px;font-weight:800;margin:40px 0 20px;color:var(--accent)">⭐ 星星與熟練規則</h3>
+    <div class="feature-grid" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr))">
+      <div class="feature-card" style="text-align:center">
+        <div style="font-size:36px;margin-bottom:8px">✅</div>
+        <div class="feature-title">答對</div>
+        <div class="feature-desc">+1 顆星，最多累積 5 顆</div>
+      </div>
+      <div class="feature-card" style="text-align:center">
+        <div style="font-size:36px;margin-bottom:8px">❌</div>
+        <div class="feature-title">答錯</div>
+        <div class="feature-desc">星星清零，同時標記「曾答錯」</div>
+      </div>
+      <div class="feature-card" style="text-align:center">
+        <div style="font-size:36px;margin-bottom:8px">⭐⭐⭐⭐⭐</div>
+        <div class="feature-title">熟練</div>
+        <div class="feature-desc">累積 5 顆星，顯示「熟練！」</div>
+      </div>
+      <div class="feature-card" style="text-align:center">
+        <div style="font-size:36px;margin-bottom:8px">📊</div>
+        <div class="feature-title">已熟練統計</div>
+        <div class="feature-desc">首頁統計所有達到 5 星的題目數</div>
+      </div>
+    </div>
+
+    <!-- 備份說明 -->
+    <h3 style="font-size:20px;font-weight:800;margin:40px 0 20px;color:var(--accent)">💾 備份與換裝置</h3>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num" style="background:var(--green)">出</div>
+        <div class="step-content">
+          <div class="step-title">匯出備份（舊裝置）</div>
+          <div class="step-desc">點首頁右上角 💾 →「📤 匯出備份檔案」→ 下載 <b>quiz-backup-日期.json</b></div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num" style="background:var(--green)">入</div>
+        <div class="step-content">
+          <div class="step-title">匯入備份（新裝置）</div>
+          <div class="step-desc">打開系統網址 → 點 💾 →「📥 匯入備份檔案」→ 選擇備份 .json 檔案 → 所有題目、星星、愛心、筆記全部還原！</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- FORMAT -->
+<section class="section" id="format">
+  <div class="container">
+    <div class="section-label">題庫格式</div>
+    <div class="section-title">JSON 題庫格式說明</div>
+    <p class="section-desc">使用標準 JSON 陣列格式，支援三種題型，可以分章節管理。</p>
+
+    <div class="callout info">
+      <div class="callout-icon">💡</div>
+      <div class="callout-text"><b>匯入方式：</b>點首頁右上角「＋」→ 上傳 .json 檔案 或 貼上 JSON 文字 → 按「匯入題庫」。重複匯入同一題（相同 id）會自動更新，不會重複。</div>
+    </div>
+
+    <!-- 題型說明表 -->
+    <table class="info-table" style="margin-top:28px">
+      <thead><tr><th>題型</th><th>type 值</th><th>answer 格式</th><th>需要 options</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>單選題</td>
+          <td><span class="tag purple">mc</span></td>
+          <td>單一字母，如 <code>"A"</code></td>
+          <td>✅ 必填</td>
+        </tr>
+        <tr>
+          <td>多選題</td>
+          <td><span class="tag orange">multi</span></td>
+          <td>字母陣列，如 <code>["A","C"]</code></td>
+          <td>✅ 必填</td>
+        </tr>
+        <tr>
+          <td>是非題</td>
+          <td><span class="tag red">tf</span></td>
+          <td><code>"T"</code> 或 <code>"F"</code></td>
+          <td>❌ 不需要</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- JSON 範例 -->
+    <div class="json-example">
+      <div class="json-header">
+        <div class="json-dot" style="background:#ff5f57"></div>
+        <div class="json-dot" style="background:#ffbd2e"></div>
+        <div class="json-dot" style="background:#28c840"></div>
+        <div class="json-filename">questions.json</div>
+      </div>
+      <div class="json-body">[
+  {
+    <span class="jc">// 單選題範例</span>
+    <span class="jk">"chapter"</span>: <span class="js">"第一章：基礎概念"</span>,
+    <span class="jk">"type"</span>: <span class="js">"mc"</span>,
+    <span class="jk">"question"</span>: <span class="js">"雲端運算中，IaaS 代表什麼？"</span>,
+    <span class="jk">"options"</span>: [
+      <span class="js">"Infrastructure as a Service"</span>,
+      <span class="js">"Internet as a Service"</span>,
+      <span class="js">"Integration as a Service"</span>,
+      <span class="js">"Information as a Service"</span>
+    ],
+    <span class="jk">"answer"</span>: <span class="jn">"A"</span>,
+    <span class="jk">"explanation"</span>: <span class="js">"IaaS（基礎設施即服務）是雲端服務模型之一。"</span>
+  },
+  {
+    <span class="jc">// 多選題範例</span>
+    <span class="jk">"chapter"</span>: <span class="js">"第一章：基礎概念"</span>,
+    <span class="jk">"type"</span>: <span class="js">"multi"</span>,
+    <span class="jk">"question"</span>: <span class="js">"以下哪些是雲端服務模型？（多選）"</span>,
+    <span class="jk">"options"</span>: [<span class="js">"SaaS"</span>, <span class="js">"IaaS"</span>, <span class="js">"BaaS"</span>, <span class="js">"PaaS"</span>],
+    <span class="jk">"answer"</span>: [<span class="jn">"A"</span>, <span class="jn">"B"</span>, <span class="jn">"D"</span>],
+    <span class="jk">"explanation"</span>: <span class="js">"SaaS、IaaS、PaaS 是三大雲端服務模型。"</span>
+  },
+  {
+    <span class="jc">// 是非題範例</span>
+    <span class="jk">"chapter"</span>: <span class="js">"第二章：安全"</span>,
+    <span class="jk">"type"</span>: <span class="js">"tf"</span>,
+    <span class="jk">"question"</span>: <span class="js">"雲端服務可以完全消除資安風險。"</span>,
+    <span class="jk">"answer"</span>: <span class="jn">"F"</span>,
+    <span class="jk">"explanation"</span>: <span class="js">"風險只能降低，無法完全消除。"</span>
+  }
+]</div>
+    </div>
+
+    <!-- 欄位說明表 -->
+    <table class="info-table" style="margin-top:28px">
+      <thead><tr><th>欄位</th><th>必填</th><th>說明</th></tr></thead>
+      <tbody>
+        <tr><td><code>chapter</code></td><td><span class="tag orange">選填</span></td><td>章節名稱，省略時歸類為「未分類」</td></tr>
+        <tr><td><code>type</code></td><td><span class="tag orange">選填</span></td><td>題型：mc / multi / tf，省略時預設為 mc</td></tr>
+        <tr><td><code>question</code></td><td><span class="tag red">必填</span></td><td>題目文字內容</td></tr>
+        <tr><td><code>options</code></td><td><span class="tag orange">選填</span></td><td>選項陣列，單選和多選題必填，是非題不需要</td></tr>
+        <tr><td><code>answer</code></td><td><span class="tag red">必填</span></td><td>正確答案（見上方格式說明）</td></tr>
+        <tr><td><code>explanation</code></td><td><span class="tag orange">選填</span></td><td>解析說明，答完題後顯示</td></tr>
+        <tr><td><code>id</code></td><td><span class="tag orange">選填</span></td><td>唯一識別碼，省略時自動產生。重複匯入相同 id 會更新而非新增</td></tr>
+      </tbody>
+    </table>
+
+    <div class="callout warn" style="margin-top:20px">
+      <div class="callout-icon">⚠️</div>
+      <div class="callout-text"><b>注意：</b>從 Word 或 PDF 複製內容時，可能含有全形引號（" "）或特殊空白，系統會自動修正這些字元。若匯入失敗，請確認 JSON 格式正確，可使用線上 JSON 驗證工具（如 jsonlint.com）檢查。</div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- FAQ -->
+<section class="section" id="faq">
+  <div class="container">
+    <div class="section-label">常見問題</div>
+    <div class="section-title">FAQ</div>
+    <p class="section-desc">使用上有疑問？這裡可能有答案。</p>
+
+    <div class="faq-list">
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFaq(this)">
+          換了手機或電腦，進度會消失嗎？
+          <span class="faq-arrow">▾</span>
+        </div>
+        <div class="faq-a">進度存在瀏覽器的本機儲存（localStorage），換裝置時需要先在舊裝置點 💾 匯出備份，在新裝置匯入備份即可完整還原所有題目、星星、愛心標記和筆記。</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFaq(this)">
+          在 Google Drive 打開，為什麼題目不見了？
+          <span class="faq-arrow">▾</span>
+        </div>
+        <div class="faq-a">Google Drive 預覽 HTML 時每次都是獨立的環境，無法保存進度。建議使用 GitHub Pages 部署，用固定網址開啟，進度才能正確保存在瀏覽器中。</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFaq(this)">
+          匯入時出現「JSON 格式錯誤」怎麼辦？
+          <span class="faq-arrow">▾</span>
+        </div>
+        <div class="faq-a">常見原因：1) JSON 內容被截斷不完整；2) 有非標準引號（系統會自動修正大多數情況）；3) 行尾多了逗號。可以把 JSON 貼到 <a href="https://jsonlint.com" target="_blank" style="color:var(--accent)">jsonlint.com</a> 驗證格式，找出問題所在。</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFaq(this)">
+          多選題怎麼算分？部分答對算對嗎？
+          <span class="faq-arrow">▾</span>
+        </div>
+        <div class="faq-a">多選題採全對才算對，必須選出全部正確答案且不能多選。部分正確或多選都算錯誤，星星會清零並標記為曾答錯。</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFaq(this)">
+          答對後「曾答錯」標記會消失嗎？
+          <span class="faq-arrow">▾</span>
+        </div>
+        <div class="faq-a">不會自動消失，錯誤標記是歷史累積記錄，答對後不清除。如果想清除錯誤標記，可以點 💾 →「標記歸零」，這會同時清除星星、愛心和錯誤標記。</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFaq(this)">
+          可以更新系統（新增功能）嗎？
+          <span class="faq-arrow">▾</span>
+        </div>
+        <div class="faq-a">可以。更新時只需要到 GitHub repo，上傳新版的 index.html 覆蓋舊的即可。題目進度存在瀏覽器 localStorage，更新程式不會影響進度，但建議更新前先備份一次。</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFaq(this)">
+          合格率是怎麼計算的？
+          <span class="faq-arrow">▾</span>
+        </div>
+        <div class="faq-a">合格率 = 答對過的題數 ÷ 已做過的題數（答對過 + 答錯過）。未做過的題目不計入計算，所以一開始做題時合格率可能偏低，隨著練習次數增加會趨於穩定。</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<div class="footer">
+  <p>📚 題庫練習系統 — 使用說明文件</p>
+  <p style="margin-top:8px;font-size:13px">免費使用 · 資料存在本機 · 不收集任何個人資訊</p>
+</div>
+
+<script>
+function toggleFaq(el) {
+  const item = el.parentElement;
+  item.classList.toggle('open');
+}
+</script>
+</body>
+</html>

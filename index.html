@@ -76,6 +76,26 @@
   .mode-btn { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 16px; cursor: pointer; transition: all 0.2s; text-align: left; color: var(--text); }
   .mode-btn:hover { border-color: var(--accent); background: var(--surface2); transform: translateY(-1px); }
   .mode-btn.heart-mode:hover { border-color: var(--heart); }
+  .note-area {
+    background: var(--surface2); border: 1.5px solid var(--border);
+    border-radius: 12px; padding: 12px 14px; margin-top: 12px;
+  }
+  .note-area-label { font-size: 11px; color: var(--muted); margin-bottom: 6px; display:flex; align-items:center; gap:6px; }
+  .note-textarea {
+    width: 100%; min-height: 72px; background: transparent; border: none;
+    color: var(--text); font-size: 14px; font-family: 'Noto Sans TC', sans-serif;
+    resize: vertical; outline: none; line-height: 1.6;
+  }
+  .note-textarea::placeholder { color: var(--muted); }
+  .note-save-btn {
+    margin-top: 8px; padding: 7px 16px; border-radius: 8px; font-size: 13px;
+    background: rgba(124,106,245,0.15); border: 1px solid var(--accent);
+    color: var(--accent); cursor: pointer; font-family: 'Noto Sans TC', sans-serif;
+    transition: all 0.2s;
+  }
+  .note-save-btn:hover { background: rgba(124,106,245,0.28); }
+  .note-saved-msg { font-size: 12px; color: var(--green); margin-left: 8px; opacity: 0; transition: opacity 0.3s; }
+  .note-saved-msg.show { opacity: 1; }
   .mode-icon { font-size: 28px; margin-bottom: 8px; }
   .mode-name { font-size: 15px; font-weight: 700; }
   .mode-desc { font-size: 12px; color: var(--muted); margin-top: 4px; }
@@ -382,7 +402,7 @@ function load() {
   try {
     const q = localStorage.getItem('quiz_q'); const p = localStorage.getItem('quiz_p');
     if (q) questions = JSON.parse(q); if (p) progress = JSON.parse(p);
-    questions.forEach(q => { if (!progress[q.id]) progress[q.id] = { stars:0, heart:false, wrong:false }; });
+    questions.forEach(q => { if (!progress[q.id]) progress[q.id] = { stars:0, heart:false, wrong:false, note:'' }; });
   } catch(e){}
 }
 
@@ -434,19 +454,24 @@ function chapterItemHTML(ch) {
   const esc = ch.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
   const barColor = famPct >= 80 ? 'var(--green)' : famPct >= 40 ? 'var(--accent2)' : 'var(--accent)';
   const passColor = passPct >= 80 ? 'var(--green)' : passPct >= 60 ? 'var(--accent2)' : 'var(--red)';
-  return `<button class="chapter-item" onclick="startChapter('${esc}')" style="flex-direction:column;align-items:stretch;gap:10px">
-    <div style="display:flex;justify-content:space-between;align-items:center">
-      <div><div class="chapter-name">${ch}</div><div class="chapter-count">${total} 題${wrongCount>0?' · <span style="color:var(--red)">❌ '+wrongCount+' 錯誤</span>':''}</div></div>
-      <div style="font-size:14px;font-weight:700;color:${barColor};font-family:'Space Mono',monospace">${famPct}%</div>
+  return `<div class="chapter-item" style="flex-direction:column;align-items:stretch;gap:10px;padding:0;overflow:hidden">
+    <div style="display:flex;align-items:stretch">
+      <button onclick="startChapter('${esc}')" style="flex:1;background:transparent;border:none;color:var(--text);text-align:left;padding:14px 16px;cursor:pointer">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <div><div class="chapter-name">${ch}</div><div class="chapter-count">${total} 題${wrongCount>0?' · <span style="color:var(--red)">❌ '+wrongCount+' 錯誤</span>':''}</div></div>
+          <div style="font-size:14px;font-weight:700;color:${barColor};font-family:'Space Mono',monospace">${famPct}%</div>
+        </div>
+        <div style="height:6px;background:var(--border);border-radius:99px;overflow:hidden;margin-bottom:8px">
+          <div style="height:100%;width:${famPct}%;background:${barColor};border-radius:99px;transition:width 0.4s ease"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted)">
+          <span>✅ ${mastered} / ${total} 題已答對過</span>
+          <span>合格率 <b style="color:${passColor}">${attempted>0?passPct+'%':'--'}</b></span>
+        </div>
+      </button>
+      <button onclick="startChapterRandom('${esc}')" title="章節隨機出題" style="width:52px;background:rgba(124,106,245,0.08);border:none;border-left:1px solid var(--border);color:var(--accent);font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background 0.2s" onmouseover="this.style.background='rgba(124,106,245,0.2)'" onmouseout="this.style.background='rgba(124,106,245,0.08)'">🎲</button>
     </div>
-    <div style="height:6px;background:var(--border);border-radius:99px;overflow:hidden">
-      <div style="height:100%;width:${famPct}%;background:${barColor};border-radius:99px;transition:width 0.4s ease"></div>
-    </div>
-    <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted)">
-      <span>✅ ${mastered} / ${total} 題已答對過</span>
-      <span>合格率 <b style="color:${passColor}">${attempted>0?passPct+'%':'--'}</b></span>
-    </div>
-  </button>`;
+  </div>`;
 }
 
 function renderChapterPreview() {
@@ -469,6 +494,7 @@ function startHeart() {
   lastMode='heart'; lastChapter=''; beginQuiz(qs,'❤️ 重要題');
 }
 function startChapter(ch) { lastMode='chapter'; lastChapter=ch; beginQuiz(shuffle(questions.filter(q=>(q.chapter||'未分類')===ch)), ch); }
+function startChapterRandom(ch) { lastMode='chapter'; lastChapter=ch; beginQuiz(shuffle(questions.filter(q=>(q.chapter||'未分類')===ch)), '🎲 '+ch); }
 function startWrong() {
   const qs = shuffle(questions.filter(q => progress[q.id]?.wrong));
   if (!qs.length) { showToast('目前沒有錯誤題目！繼續練習後會自動記錄'); return; }
@@ -602,12 +628,19 @@ function confirmMulti() {
 
 function showFeedback(correct, ansLabel, q) {
   const fb = document.getElementById('feedback');
+  const prog = progress[q.id] || {};
+  const noteHTML = `
+    <div class="note-area" style="margin-top:14px">
+      <div class="note-area-label">📝 我的筆記 <span class="note-saved-msg" id="note-saved">已儲存 ✓</span></div>
+      <textarea class="note-textarea" id="note-input" placeholder="在這裡輸入你的筆記、重點或提示...">${prog.note||''}</textarea>
+      <button class="note-save-btn" onclick="saveNote('${q.id}')">儲存筆記</button>
+    </div>`;
   if (correct) {
     fb.className = 'result-feedback correct-fb show';
-    fb.innerHTML = `<div class="fb-title">✅ 答對了！</div>${q.explanation?'<div class="fb-answer">'+q.explanation+'</div>':''}`;
+    fb.innerHTML = `<div class="fb-title">✅ 答對了！</div>${q.explanation?'<div class="fb-answer">'+q.explanation+'</div>':''}${noteHTML}`;
   } else {
     fb.className = 'result-feedback wrong-fb show';
-    fb.innerHTML = `<div class="fb-title">❌ 答錯了</div><div class="fb-answer">正確答案：${ansLabel}</div>${q.explanation?'<div class="fb-answer">'+q.explanation+'</div>':''}`;
+    fb.innerHTML = `<div class="fb-title">❌ 答錯了</div><div class="fb-answer">正確答案：${ansLabel}</div>${q.explanation?'<div class="fb-answer">'+q.explanation+'</div>':''}${noteHTML}`;
   }
   document.getElementById('next-btn').classList.add('show');
 }
@@ -627,6 +660,15 @@ function recordAnswer(qId, correct) {
   }
   const se = document.getElementById('stars-'+qId); if (se) se.innerHTML = starsHTML(progress[qId].stars);
   save();
+}
+
+function saveNote(qId) {
+  const val = document.getElementById('note-input')?.value || '';
+  if (!progress[qId]) progress[qId] = {stars:0, heart:false, wrong:false, note:''};
+  progress[qId].note = val;
+  save();
+  const msg = document.getElementById('note-saved');
+  if (msg) { msg.classList.add('show'); setTimeout(()=>msg.classList.remove('show'), 2000); }
 }
 
 function nextQuestion() { currentSession.idx++; renderQuestion(); }
